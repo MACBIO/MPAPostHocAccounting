@@ -31,8 +31,6 @@ import resources
 # Import the code for the dialog
 from MPA_postHocAccounting_dialog import MPAPostHocAccountingDialog
 import os.path
-import utils
-
 
 class MPAPostHocAccounting:
     """QGIS Plugin Implementation."""
