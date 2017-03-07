@@ -25,12 +25,12 @@ from PyQt4.QtGui import *
 from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
-from osgeo import ogr
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from MPA_postHocAccounting_dialog import MPAPostHocAccountingDialog
-import os.path
+import os
+import xlwt
 
 class MPAPostHocAccounting:
     """QGIS Plugin Implementation."""
@@ -68,9 +68,6 @@ class MPAPostHocAccounting:
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'MPAPostHocAccounting')
         self.toolbar.setObjectName(u'MPAPostHocAccounting')
-        
-        # listener to execute script when "ok" button is pressed
-        #self.dlg.button_box.clicked.connect(self.select_output_file)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -99,48 +96,9 @@ class MPAPostHocAccounting:
         status_tip=None,
         whats_this=None,
         parent=None):
-        """Add a toolbar icon to the toolbar.
-
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
-        :type icon_path: str
-
-        :param text: Text that should be shown in menu items for this action.
-        :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
-
-        :param status_tip: Optional text to show in a popup when mouse pointer
-            hovers over the action.
-        :type status_tip: str
-
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
-        :param whats_this: Optional text to show in the status bar when the
-            mouse pointer hovers over the action.
-
-        :returns: The action that was created. Note that the action is also
-            added to self.actions list.
-        :rtype: QAction
-        """
 
         # Create the dialog (after translation) and keep reference
         self.dlg = MPAPostHocAccountingDialog()
-        self.btnOk = self.dlg.button_box.button(QDialogButtonBox.Ok)
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -167,14 +125,12 @@ class MPAPostHocAccounting:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
         icon_path = ':/plugins/MPAPostHocAccounting/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'MPA Post-Hoc Accouting'),
+            text=self.tr(u'MPA Post-Hoc Accounting'),
             callback=self.run,
             parent=self.iface.mainWindow())
-
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -205,6 +161,12 @@ class MPAPostHocAccounting:
         # add layer names to MPA layer dropdown
         self.dlg.inMPA_Layer.addItem('select MPA layer')
         self.dlg.inMPA_Layer.addItems(lyrNameList)
+        
+        # set the coverage and replication target defaults
+        coverageSpinBox = self.dlg.coverageSpinBox
+        replSpinBox = self.dlg.replSpinBox
+        coverageSpinBox.setValue(10)
+        replSpinBox.setValue(2)
         
         # show the window
         self.dlg.show()
@@ -237,7 +199,6 @@ class MPAPostHocAccounting:
             # add layer names and field names to analysis selection window
             layerFieldsTree = self.dlg.inData
             layerFieldsTree.clear()
-            self.items = []
             for layer in layers:
                 if layer.name() == self.inMPAlayer.name():
                     pass
@@ -257,11 +218,9 @@ class MPAPostHocAccounting:
         def treeSelectionChanged():
             self.checkPolyDict = {}
             getSelected = self.dlg.inData.selectedItems()
-            self.fields = []
             for i in getSelected:
                 fieldName = i.text(0)
                 layerName = i.parent().text(0)
-                layerPath = []
                 for i in range(iface.mapCanvas().layerCount()):
                     layer = iface.mapCanvas().layer(i)
                     if layer.name() == layerName:
@@ -269,6 +228,23 @@ class MPAPostHocAccounting:
                             if field.name() == fieldName:
                                 self.checkPolyDict[layerName] = {'layer': layer, 'field': field}
         self.dlg.inData.itemSelectionChanged.connect(treeSelectionChanged)  
+        
+        # display file dialog to select output spreadsheet
+        self.outXLS = ''
+        def outFile():
+            fileDialog = QFileDialog()
+            fileDialog.setConfirmOverwrite(False)
+            outName = fileDialog.getSaveFileName(fileDialog, "Output Spreadsheet",".", "Spreadsheets (*.xls)")
+            outPath = QFileInfo(outName).absoluteFilePath()
+            if not outPath.upper().endswith(".XLS"):
+                outPath = outPath + ".xls"
+            if outName:
+                self.outXLS = outPath
+                self.dlg.outTable.clear()
+                self.dlg.outTable.insert(outPath)
+           
+        # select output spreadsheet file
+        self.dlg.outButton.clicked.connect(outFile)  
         
         # function returns dict of dicts with area of intersection for two shapefiles
         def intersectArea(layer1, field1, layer2, field2):
@@ -287,9 +263,9 @@ class MPAPostHocAccounting:
                         intersection = geom1.intersection(geom2)
                         intArea = intersection.area()
                         if attr2 in featDict.keys():
-                            featDict[attr2] += (intArea / geom1.area()) * 100
+                            featDict[attr2] += (intArea / geom1.area())
                         else:
-                            featDict[attr2] = (intArea / geom1.area()) * 100
+                            featDict[attr2] = (intArea / geom1.area())
                     # write shape2 dict to output dict
                 areaDict[attr1] = featDict
             return areaDict
@@ -297,27 +273,64 @@ class MPAPostHocAccounting:
         # this part is executed after the ok button is pressed
         result = self.dlg.exec_()
         if result:
+            # set the coverage and replication target variables
+            self.coverageTarget = coverageSpinBox.value()
+            self.replTarget = replSpinBox.value()
+            # create a workbook
+            wb = xlwt.Workbook()
             # loop through polygon layers
             for polyName in self.checkPolyDict.keys():
+                # add a new worksheet to workbook
+                ws = wb.add_sheet(polyName)
+                row = 1
+                # define green and red styles
+                greenStyle = 'pattern: pattern solid, pattern_fore_colour lime, pattern_back_colour lime'
+                redStyle = 'pattern: pattern solid, pattern_fore_colour rose, pattern_back_colour rose'
+                # get information from the dictionary
                 layer = self.checkPolyDict[polyName]['layer']
                 field = self.checkPolyDict[polyName]['field']
+                # write header
+                headerCells = [polyName + " " + field.name(),
+                               "Coverage" + " target=" + "{0:.0f}%".format(self.coverageTarget),
+                               "Replication" + ' target=' + str(self.replTarget)]
+                for i in range(len(headerCells)):
+                    ws.write(0, i, headerCells[i])
                 # create list of unique IDs for polygons
                 attrIndex = layer.fieldNameIndex(field.name())
                 attrList = layer.uniqueValues(attrIndex)
                 # create dictionary with entry for each polygon with values of area intersecting with each MPA
                 mpaAreaPerPoly = intersectArea(layer, field, self.inMPAlayer, self.inMPAfield)
-                # print report
+                # print report 
                 for uniqueID in attrList:
                     sumArea = sum(mpaAreaPerPoly[uniqueID].values())
-                    mpaPercentage = "{0:.0f}%".format(sumArea)
                     mpaCount = str(len([PA for PA in mpaAreaPerPoly[uniqueID]]))
-                    try:
-                        featName = str(int(uniqueID))
-                    except:
-                        featName = str(uniqueID)
-                    # print summary for polygon
-                    print polyName, ":", featName, ":", mpaPercentage, "covered", ":", mpaCount, "replicates"
-                    for PA in mpaAreaPerPoly[uniqueID]:
-                        # print are for each MPA
-                        print "MPA",str(PA), "{0:.0f}%".format(mpaAreaPerPoly[uniqueID][PA])
-                print
+                    printList = [uniqueID, sumArea, mpaCount]
+                    for attribute in printList:
+                        if attribute == uniqueID:
+                            try:
+                                attribute = int(uniqueID)
+                            except:
+                                pass
+                            ws.write(row, 0, attribute)
+                        elif attribute == sumArea:
+                            attribute = float(attribute)
+                            if attribute >= self.coverageTarget/100.0:
+                                styleString = greenStyle
+                            else:
+                                styleString = redStyle
+                            style = xlwt.easyxf(styleString, num_format_str='0%')
+                            ws.write(row, 1, attribute, style)
+                        elif attribute == mpaCount:
+                            attribute = int(attribute)
+                            if attribute >= self.replTarget:
+                                styleString = greenStyle
+                            else:
+                                styleString = redStyle
+                            style = xlwt.easyxf(styleString)
+                            ws.write(row, 2, attribute, style)
+                    row += 1
+                for i in range(len(headerCells)):
+                    ws.col(i).width = (len(headerCells[i]) + 4) * 367
+            wb.save(self.outXLS)
+            if os.path.exists(self.outXLS):
+                os.system(self.outXLS)
