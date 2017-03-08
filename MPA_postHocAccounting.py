@@ -219,14 +219,17 @@ class MPAPostHocAccounting:
             self.checkPolyDict = {}
             getSelected = self.dlg.inData.selectedItems()
             for i in getSelected:
-                fieldName = i.text(0)
-                layerName = i.parent().text(0)
-                for i in range(iface.mapCanvas().layerCount()):
-                    layer = iface.mapCanvas().layer(i)
-                    if layer.name() == layerName:
-                        for field in layer.pendingFields():
-                            if field.name() == fieldName:
-                                self.checkPolyDict[layerName] = {'layer': layer, 'field': field}
+                if i.parent():
+                    fieldName = i.text(0)
+                    layerName = i.parent().text(0)
+                    print "field:", fieldName
+                    print "layer:", layerName
+                    for i in range(iface.mapCanvas().layerCount()):
+                        layer = iface.mapCanvas().layer(i)
+                        if layer.name() == layerName:
+                            for field in layer.pendingFields():
+                                if field.name() == fieldName:
+                                    self.checkPolyDict[layerName] = {'layer': layer, 'field': field}
         self.dlg.inData.itemSelectionChanged.connect(treeSelectionChanged)  
         
         # display file dialog to select output spreadsheet
