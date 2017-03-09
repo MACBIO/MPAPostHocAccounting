@@ -181,6 +181,7 @@ class MPAPostHocAccounting:
                         self.inMPAlayer = layer
                         # select MPA unique field next
                         fieldNameList = [field.name() for field in self.inMPAlayer.fields()]
+                        self.dlg.inMPA_Field.clear()
                         self.dlg.inMPA_Field.addItems(fieldNameList)
                         setMPAfield(layer)
         self.dlg.inMPA_Layer.currentIndexChanged.connect(setMPAlayer)
@@ -222,8 +223,6 @@ class MPAPostHocAccounting:
                 if i.parent():
                     fieldName = i.text(0)
                     layerName = i.parent().text(0)
-                    print "field:", fieldName
-                    print "layer:", layerName
                     for i in range(iface.mapCanvas().layerCount()):
                         layer = iface.mapCanvas().layer(i)
                         if layer.name() == layerName:
