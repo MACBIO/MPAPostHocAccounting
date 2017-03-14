@@ -28,7 +28,8 @@ from qgis.utils import *
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
-from MPA_postHocAccounting_dialog import MPAPostHocAccountingDialog
+from MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
+from MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
 import xlwt
 
@@ -98,7 +99,8 @@ class MPAPostHocAccounting:
         parent=None):
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = MPAPostHocAccountingDialog()
+        self.dlg_base = MPAPostHocAccountingDialogBase()
+        self.dlg_targets = MPAPostHocAccountingDialogTargets()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -156,40 +158,34 @@ class MPAPostHocAccounting:
         lyrNameList = [layer.name() for layer in layers]
         
         # clear the MPA layer dropdown
-        self.dlg.inMPA_Layer.clear()
+        self.dlg_base.inMPA_Layer.clear()
         
         # add layer names to MPA layer dropdown
-        self.dlg.inMPA_Layer.addItem('select MPA layer')
-        self.dlg.inMPA_Layer.addItems(lyrNameList)
-        
-        # set the coverage and replication target defaults
-        coverageSpinBox = self.dlg.coverageSpinBox
-        replSpinBox = self.dlg.replSpinBox
-        coverageSpinBox.setValue(10)
-        replSpinBox.setValue(2)
+        self.dlg_base.inMPA_Layer.addItem('select MPA layer')
+        self.dlg_base.inMPA_Layer.addItems(lyrNameList)
         
         # show the window
-        self.dlg.show()
+        self.dlg_base.show()
         
         # select the MPA layer
         self.inMPAlayer = QgsVectorLayer()
         def setMPAlayer():
-            inMPAlayerName = self.dlg.inMPA_Layer.currentText()
+            inMPAlayerName = self.dlg_base.inMPA_Layer.currentText()
             for i in range(iface.mapCanvas().layerCount()):
                     layer = iface.mapCanvas().layer(i)
                     if layer.name() == inMPAlayerName:
                         self.inMPAlayer = layer
                         # select MPA unique field next
                         fieldNameList = [field.name() for field in self.inMPAlayer.fields()]
-                        self.dlg.inMPA_Field.clear()
-                        self.dlg.inMPA_Field.addItems(fieldNameList)
+                        self.dlg_base.inMPA_Field.clear()
+                        self.dlg_base.inMPA_Field.addItems(fieldNameList)
                         setMPAfield(layer)
-        self.dlg.inMPA_Layer.currentIndexChanged.connect(setMPAlayer)
+        self.dlg_base.inMPA_Layer.currentIndexChanged.connect(setMPAlayer)
         
         # set the MPA field
         self.inMPAfield = QgsField()
         def setMPAfield(layer):
-            inMPAfieldName = self.dlg.inMPA_Field.currentText()
+            inMPAfieldName = self.dlg_base.inMPA_Field.currentText()
             for field in layer.pendingFields():
                 if field.name() == inMPAfieldName:
                     self.inMPAfield = field
@@ -198,13 +194,12 @@ class MPAPostHocAccounting:
         # add polygon layers and field names to tree widget
         def setLayers(layers):
             # add layer names and field names to analysis selection window
-            layerFieldsTree = self.dlg.inData
+            layerFieldsTree = self.dlg_base.inData
             layerFieldsTree.clear()
             for layer in layers:
                 if layer.name() == self.inMPAlayer.name():
                     pass
                 else:
-                    #item = utils.LayerItem(None, layer)
                     treeItem = QTreeWidgetItem()
                     layerFieldsTree.addTopLevelItem(treeItem)
                     treeItem.setText(0, layer.name())
@@ -218,7 +213,7 @@ class MPAPostHocAccounting:
         self.checkPolyDict = {}
         def treeSelectionChanged():
             self.checkPolyDict = {}
-            getSelected = self.dlg.inData.selectedItems()
+            getSelected = self.dlg_base.inData.selectedItems()
             for i in getSelected:
                 if i.parent():
                     fieldName = i.text(0)
@@ -229,24 +224,7 @@ class MPAPostHocAccounting:
                             for field in layer.pendingFields():
                                 if field.name() == fieldName:
                                     self.checkPolyDict[layerName] = {'layer': layer, 'field': field}
-        self.dlg.inData.itemSelectionChanged.connect(treeSelectionChanged)  
-        
-        # display file dialog to select output spreadsheet
-        self.outXLS = ''
-        def outFile():
-            fileDialog = QFileDialog()
-            fileDialog.setConfirmOverwrite(False)
-            outName = fileDialog.getSaveFileName(fileDialog, "Output Spreadsheet",".", "Spreadsheets (*.xls)")
-            outPath = QFileInfo(outName).absoluteFilePath()
-            if not outPath.upper().endswith(".XLS"):
-                outPath = outPath + ".xls"
-            if outName:
-                self.outXLS = outPath
-                self.dlg.outTable.clear()
-                self.dlg.outTable.insert(outPath)
-           
-        # select output spreadsheet file
-        self.dlg.outButton.clicked.connect(outFile)  
+        self.dlg_base.inData.itemSelectionChanged.connect(treeSelectionChanged)  
         
         # function returns dict of dicts with area of intersection for two shapefiles
         def intersectArea(layer1, field1, layer2, field2):
@@ -272,67 +250,130 @@ class MPAPostHocAccounting:
                 areaDict[attr1] = featDict
             return areaDict
                 
-        # this part is executed after the ok button is pressed
-        result = self.dlg.exec_()
-        if result:
-            # set the coverage and replication target variables
-            self.coverageTarget = coverageSpinBox.value()
-            self.replTarget = replSpinBox.value()
-            # create a workbook
-            wb = xlwt.Workbook()
-            # loop through polygon layers
-            for polyName in self.checkPolyDict.keys():
-                # add a new worksheet to workbook
-                ws = wb.add_sheet(polyName)
-                row = 1
-                # define green and red styles
-                greenStyle = 'pattern: pattern solid, pattern_fore_colour lime, pattern_back_colour lime'
-                redStyle = 'pattern: pattern solid, pattern_fore_colour rose, pattern_back_colour rose'
-                # get information from the dictionary
-                layer = self.checkPolyDict[polyName]['layer']
-                field = self.checkPolyDict[polyName]['field']
-                # write header
-                headerCells = [polyName + " " + field.name(),
-                               "Coverage" + " target=" + "{0:.0f}%".format(self.coverageTarget),
-                               "Replication" + ' target=' + str(self.replTarget)]
-                for i in range(len(headerCells)):
-                    ws.write(0, i, headerCells[i])
-                # create list of unique IDs for polygons
-                attrIndex = layer.fieldNameIndex(field.name())
-                attrList = layer.uniqueValues(attrIndex)
-                # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                mpaAreaPerPoly = intersectArea(layer, field, self.inMPAlayer, self.inMPAfield)
-                # print report 
-                for uniqueID in attrList:
-                    sumArea = sum(mpaAreaPerPoly[uniqueID].values())
-                    mpaCount = str(len([PA for PA in mpaAreaPerPoly[uniqueID]]))
-                    printList = [uniqueID, sumArea, mpaCount]
-                    for attribute in printList:
-                        if attribute == uniqueID:
-                            try:
-                                attribute = int(uniqueID)
-                            except:
-                                pass
-                            ws.write(row, 0, attribute)
-                        elif attribute == sumArea:
-                            attribute = float(attribute)
-                            if attribute >= self.coverageTarget/100.0:
-                                styleString = greenStyle
-                            else:
-                                styleString = redStyle
-                            style = xlwt.easyxf(styleString, num_format_str='0%')
-                            ws.write(row, 1, attribute, style)
-                        elif attribute == mpaCount:
-                            attribute = int(attribute)
-                            if attribute >= self.replTarget:
-                                styleString = greenStyle
-                            else:
-                                styleString = redStyle
-                            style = xlwt.easyxf(styleString)
-                            ws.write(row, 2, attribute, style)
-                    row += 1
-                for i in range(len(headerCells)):
-                    ws.col(i).width = (len(headerCells[i]) + 4) * 367
-            wb.save(self.outXLS)
-            if os.path.exists(self.outXLS):
-                os.system(self.outXLS)
+        # this part is executed after the ok button is pressed on the base window
+        resultBase = self.dlg_base.exec_()
+        if resultBase:
+            tableWidget = self.dlg_targets.tableWidget
+            tableWidget.clearContents()
+            row = 0
+            for layer in self.checkPolyDict.keys():
+                tableWidget.insertRow(row)
+                tableItem = QTableWidgetItem()
+                tableItem.setText(layer)
+                tableWidget.setItem(row, 0, tableItem)
+                row += 1
+            for row in range(tableWidget.rowCount()):
+                for column in range(1, tableWidget.columnCount()):
+                    if column == 1:
+                        val = 10
+                    elif column == 2:
+                        val = 2
+                    tableItem = QTableWidgetItem()
+                    tableItem.setText(str(val))
+                    tableWidget.setItem(row, column, tableItem)
+                    
+            # resize columns to fit contents
+            header = tableWidget.horizontalHeader()
+            header.setResizeMode(0, QHeaderView.Stretch)
+            header.setResizeMode(1, QHeaderView.ResizeToContents)
+            header.setResizeMode(2, QHeaderView.ResizeToContents)
+            
+            self.dlg_targets.show()
+            
+            # display file dialog to select output spreadsheet
+            self.outXLS = ''
+            def outFile():
+                fileDialog = QFileDialog()
+                fileDialog.setConfirmOverwrite(False)
+                outName = fileDialog.getSaveFileName(fileDialog, "Output Spreadsheet",".", "Spreadsheets (*.xls)")
+                outPath = QFileInfo(outName).absoluteFilePath()
+                if not outPath.upper().endswith(".XLS"):
+                    outPath = outPath + ".xls"
+                if outName:
+                    self.outXLS = outPath
+                    self.dlg_targets.outTable.clear()
+                    self.dlg_targets.outTable.insert(outPath)
+           
+            # select output spreadsheet file
+            self.dlg_targets.outButton.clicked.connect(outFile)  
+            
+            # this part is executed after the ok button is pressed on the targets window
+            resultTarget = self.dlg_targets.exec_()
+            if resultTarget:
+                # set the coverage and replication targets
+                for row in range(tableWidget.rowCount()):
+                    layerName = ''
+                    coverageTarget = 0
+                    replTarget = 0
+                    for column in range(tableWidget.columnCount()):
+                        tableItem = tableWidget.item(row, column)
+                        if column == 0:
+                            layerName = tableItem.text()
+                        elif column == 1:
+                            coverageTarget = tableItem.text()
+                        elif column == 2:
+                            replTarget = tableItem.text()
+                    self.checkPolyDict[layerName]['coverageTarget'] = int(coverageTarget)
+                    self.checkPolyDict[layerName]['replTarget'] = int(replTarget)
+            
+                # create a workbook
+                wb = xlwt.Workbook()
+                
+                # loop through polygon layers
+                for polyName in self.checkPolyDict.keys():
+                    # add a new worksheet to workbook
+                    ws = wb.add_sheet(polyName)
+                    row = 1
+                    # define green and red styles
+                    greenStyle = 'pattern: pattern solid, pattern_fore_colour lime, pattern_back_colour lime'
+                    redStyle = 'pattern: pattern solid, pattern_fore_colour rose, pattern_back_colour rose'
+                    # get information from the dictionary
+                    layer = self.checkPolyDict[polyName]['layer']
+                    field = self.checkPolyDict[polyName]['field']
+                    coverageTarget = self.checkPolyDict[polyName]['coverageTarget']
+                    replTarget = self.checkPolyDict[polyName]['replTarget']
+                    # write header
+                    headerCells = [polyName + " " + field.name(),
+                                   "Coverage" + " target=" + "{0:.0f}%".format(coverageTarget),
+                                   "Replication" + ' target=' + str(replTarget)]
+                    for i in range(len(headerCells)):
+                        ws.write(0, i, headerCells[i])
+                    # create list of unique IDs for polygons
+                    attrIndex = layer.fieldNameIndex(field.name())
+                    attrList = layer.uniqueValues(attrIndex)
+                    # create dictionary with entry for each polygon with values of area intersecting with each MPA
+                    mpaAreaPerPoly = intersectArea(layer, field, self.inMPAlayer, self.inMPAfield)
+                    # print report 
+                    for uniqueID in attrList:
+                        sumArea = sum(mpaAreaPerPoly[uniqueID].values())
+                        mpaCount = str(len([PA for PA in mpaAreaPerPoly[uniqueID]]))
+                        printList = [uniqueID, sumArea, mpaCount]
+                        for attribute in printList:
+                            if attribute == uniqueID:
+                                try:
+                                    attribute = int(uniqueID)
+                                except:
+                                    pass
+                                ws.write(row, 0, attribute)
+                            elif attribute == sumArea:
+                                attribute = float(attribute)
+                                if attribute >= coverageTarget/100.0:
+                                    styleString = greenStyle
+                                else:
+                                    styleString = redStyle
+                                style = xlwt.easyxf(styleString, num_format_str='0%')
+                                ws.write(row, 1, attribute, style)
+                            elif attribute == mpaCount:
+                                attribute = int(attribute)
+                                if attribute >= replTarget:
+                                    styleString = greenStyle
+                                else:
+                                    styleString = redStyle
+                                style = xlwt.easyxf(styleString)
+                                ws.write(row, 2, attribute, style)
+                        row += 1
+                    for i in range(len(headerCells)):
+                        ws.col(i).width = (len(headerCells[i]) + 4) * 367
+                wb.save(self.outXLS)
+                if os.path.exists(self.outXLS):
+                    os.system(self.outXLS)
