@@ -10,7 +10,7 @@
 name=MPA Post-Hoc Accounting
 qgisMinimumVersion=2.0
 description=This plugin checks how your MPAs meet your placement objectives
-version=0.1
+version=0.3
 author=Jonah Sullivan
 email=jonahsullivan79@gmail.com
 
