@@ -28,7 +28,7 @@ repository=https://github.com/MACBIO/MPA-Post-Hoc-Accounting-QGIS-Plugin
 # Tags are comma separated with spaces allowed
 tags=
 
-homepage=
+homepage=https://github.com/MACBIO/MPA-Post-Hoc-Accounting-QGIS-Plugin
 category=Plugins
 icon=icon.png
 # experimental flag
