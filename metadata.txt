@@ -16,8 +16,8 @@ email=jonahsullivan79@gmail.com
 
 about=This plugin is used to check how a MPA network meets Marine Spatial Planning MPA Placement Objectives. For example, the MPA network should cover 10% of each bioregion and each bioregion should be replicated (intersected) by 3 MPAs.
 
-tracker=https://github.com/MACBIO/MPA-Post-Hoc-Accounting-QGIS-Plugin/issues
-repository=https://github.com/MACBIO/MPA-Post-Hoc-Accounting-QGIS-Plugin
+tracker=https://github.com/MACBIO/MPAPostHocAccounting/issues
+repository=https://github.com/MACBIO/MPAPostHocAccounting
 # End of mandatory metadata
 
 # Recommended items:
@@ -28,7 +28,7 @@ repository=https://github.com/MACBIO/MPA-Post-Hoc-Accounting-QGIS-Plugin
 # Tags are comma separated with spaces allowed
 tags=
 
-homepage=https://github.com/MACBIO/MPA-Post-Hoc-Accounting-QGIS-Plugin
+homepage=https://github.com/MACBIO/MPAPostHocAccounting
 category=Plugins
 icon=icon.png
 # experimental flag
