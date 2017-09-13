@@ -321,6 +321,44 @@ class MPAPostHocAccounting:
             
                 # create a workbook
                 wb = xlwt.Workbook()
+
+                # analyse mpa size and distance to nearest MPA
+                mpalayer = self.inMPAlayer
+                mpafield = self.inMPAfield
+                #create dict of distances to other mpas
+                distDict = {}
+                for feat in mpalayer.getFeatures():
+                    geom = feat.geometry()
+                    attr = feat[mpalayer.fieldNameIndex(mpafield.name())]
+                    distList = []
+                    attrList = []
+                    for testfeat in mpalayer.getFeatures():
+                        dist = geom.distance(testfeat.geometry())
+                        if dist == 0.0:
+                            pass
+                        else:
+                            distList.append(dist)
+                            attrList.append(testfeat[mpalayer.fieldNameIndex(mpafield.name())])
+
+                    # add values to dictionary
+                    mindist = min(distList)
+                    minattr = attrList[distList.index(mindist)]
+                    distDict[attr] = [minattr, mindist]
+
+                # write closest mpa to workbook
+                ws = wb.add_sheet("Distances")
+                row = 0
+                # write header
+                header_cells = ["MPA ID", "Nearest MPA", "Distance (km)"]
+                for i in range(len(header_cells)):
+                    ws.write(row, i, header_cells[i])
+                row += 1
+                # write values
+                for item in distDict.keys():
+                    ws.write(row, 0, item)
+                    ws.write(row, 1, distDict[item][0])
+                    ws.write(row, 2, 111 * distDict[item][1]) # this is a rough conversion from DD to kilometres
+                    row += 1
                 
                 # loop through polygon layers
                 for polyName in self.checkPolyDict.keys():
