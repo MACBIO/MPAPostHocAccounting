@@ -20,15 +20,15 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from qgis.core import *
-from qgis.utils import *
+from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QFileInfo
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog
+from qgis.core import QgsProject
 # Initialize Qt resources from file resources.py
-import resources
+from .resources import *
 # Import the code for the dialog
-from MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
-from MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
+from .MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
+from .MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
 import xlwt
 
@@ -65,7 +65,6 @@ class MPAPostHocAccounting:
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&MPA Post-Hoc Accounting')
-        # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'MPAPostHocAccounting')
         self.toolbar.setObjectName(u'MPAPostHocAccounting')
 
@@ -144,70 +143,45 @@ class MPAPostHocAccounting:
 
     def run(self):
         """Run method that performs all the real work"""
-        # find all of the layers in the map
-        layers = []
-        for i in range(iface.mapCanvas().layerCount()):
-            layer = iface.mapCanvas().layer(i)
-            if layer.type() == layer.VectorLayer:
-                if layer.geometryType() == QGis.Polygon:
-                    layers.append(layer)
-       
-        # list of layer names
-        lyr_name_list = [layer.name() for layer in layers]
-        
-        # clear the MPA layer dropdown
-        self.dlg_base.inMPA_Layer.clear()
-        
-        # add layer names to MPA layer dropdown
-        self.dlg_base.inMPA_Layer.addItem('select MPA layer')
-        self.dlg_base.inMPA_Layer.addItems(lyr_name_list)
         
         # show the window
         self.dlg_base.show()
         
         # select the MPA layer
-        self.inMPAlayer = QgsVectorLayer()
+        self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
 
-        def set_mpa_layer():
-            in_mpa_layername = self.dlg_base.inMPA_Layer.currentText()
-            for i in range(iface.mapCanvas().layerCount()):
-                    layer = iface.mapCanvas().layer(i)
-                    if layer.name() == in_mpa_layername:
-                        self.inMPAlayer = layer
-                        # select MPA unique field next
-                        field_name_list = [field.name() for field in self.inMPAlayer.fields()]
-                        self.dlg_base.inMPA_Field.clear()
-                        self.dlg_base.inMPA_Field.addItems(field_name_list)
-                        set_mpa_field(layer)
-        self.dlg_base.inMPA_Layer.currentIndexChanged.connect(set_mpa_layer)
+        def set_layerName():
+            self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
+
+        self.dlg_base.inMPA_Layer.layerChanged.connect(set_layerName)
+
+        # set the mpaLayer for the field combo box
+        def set_fieldComboBox_layer(inLayer):
+            self.dlg_base.fieldComboBox.setLayer(inLayer)
+
+        self.dlg_base.inMPA_Layer.layerChanged.connect(set_fieldComboBox_layer)
         
-        # set the MPA field
-        self.inMPAfield = QgsField()
-
-        def set_mpa_field(layer):
-            in_mpa_fieldname = self.dlg_base.inMPA_Field.currentText()
-            for field in layer.pendingFields():
-                if field.name() == in_mpa_fieldname:
-                    self.inMPAfield = field
-            set_layers(layers)
+        # set the MPA unique identifier field
+        self.inMPAfield = self.dlg_base.fieldComboBox.currentField()
             
         # add polygon layers and field names to tree widget
-        def set_layers(layers):
+        def set_layers():
             # add layer names and field names to analysis selection window
             layer_fields_tree = self.dlg_base.inData
             layer_fields_tree.clear()
-            for layer in layers:
+            for layer in self.iface.mapCanvas().layers():
                 if layer.name() == self.inMPAlayer.name():
                     pass
                 else:
                     tree_item = QTreeWidgetItem()
                     layer_fields_tree.addTopLevelItem(tree_item)
                     tree_item.setText(0, layer.name())
-                    fields = layer.pendingFields()
-                    for field in fields:
+                    for field in layer.fields():
                         field_item = QTreeWidgetItem(tree_item)
                         field_item.setText(0, field.name())
-                    layer_fields_tree.setItemExpanded(tree_item, True)
+            self.dlg_base.inData.expandAll()
+
+        self.dlg_base.fieldComboBox.fieldChanged.connect(set_layers)
             
         # add selected layers and fields to processing list
         self.checkPolyDict = {}
@@ -219,10 +193,10 @@ class MPAPostHocAccounting:
                 if i.parent():
                     field_name = i.text(0)
                     layer_name = i.parent().text(0)
-                    for j in range(iface.mapCanvas().layerCount()):
-                        layer = iface.mapCanvas().layer(j)
+                    for j in range(self.iface.mapCanvas().layerCount()):
+                        layer = self.iface.mapCanvas().layer(j)
                         if layer.name() == layer_name:
-                            for field in layer.pendingFields():
+                            for field in layer.fields():
                                 if field.name() == field_name:
                                     self.checkPolyDict[layer_name] = {'layer': layer, 'field': field}
         self.dlg_base.inData.itemSelectionChanged.connect(tree_selection_changed)
@@ -274,12 +248,6 @@ class MPAPostHocAccounting:
                     table_item.setText(str(val))
                     table_widget.setItem(row, column, table_item)
                     
-            # resize columns to fit contents
-            header = table_widget.horizontalHeader()
-            header.setResizeMode(0, QHeaderView.Stretch)
-            header.setResizeMode(1, QHeaderView.ResizeToContents)
-            header.setResizeMode(2, QHeaderView.ResizeToContents)
-            
             self.dlg_targets.show()
             
             # display file dialog to select output spreadsheet
@@ -287,9 +255,10 @@ class MPAPostHocAccounting:
 
             def out_file():
                 file_dialog = QFileDialog()
-                file_dialog.setConfirmOverwrite(False)
+                file_dialog.setOption(QFileDialog.DontConfirmOverwrite)
                 out_name = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", ".", "Spreadsheets (*.xls)")
-                out_path = QFileInfo(out_name).absoluteFilePath()
+                print(out_name)
+                out_path = QFileInfo(out_name[0]).absoluteFilePath()
                 if not out_path.upper().endswith(".XLS"):
                     out_path = out_path + ".xls"
                 if out_name:

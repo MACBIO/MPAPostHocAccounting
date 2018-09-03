@@ -3,11 +3,11 @@
 /***************************************************************************
  MPAPostHocAccountingDialog
                                  A QGIS plugin
- This plugin checks how your MPAs meet your placement objectives
+  This plugin checks how your MPAs meet your placement objectives
                              -------------------
-        begin                : 2017-03-02
+        begin                : 2018-09-03
         git sha              : $Format:%H$
-        copyright            : (C) 2017 by Jonah Sullivan
+        copyright            : (C) 2018 by Jonah Sullivan
         email                : jonahsullivan79@gmail.com
  ***************************************************************************/
 
@@ -23,13 +23,14 @@
 
 import os
 
-from PyQt4 import QtGui, uic
+from PyQt5 import uic
+from PyQt5 import QtWidgets
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'MPA_postHocAccounting_dialog_base.ui'))
 
 
-class MPAPostHocAccountingDialog(QtGui.QDialog, FORM_CLASS):
+class MPAPostHocAccountingDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(MPAPostHocAccountingDialog, self).__init__(parent)
