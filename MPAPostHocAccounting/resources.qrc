@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/MPAPostHocAccounting" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
