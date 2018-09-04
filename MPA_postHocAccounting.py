@@ -332,6 +332,8 @@ class MPAPostHocAccounting:
                         mpa_count = str(len([PA for PA in mpa_area_per_poly[uniqueID]]))
                         print_list = [uniqueID, sum_area, mpa_count]
                         for attribute in print_list:
+                            if attribute == None:
+                                attribute = "NULL"
                             if attribute == uniqueID:
                                 try:
                                     attribute = int(uniqueID)
