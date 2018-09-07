@@ -183,7 +183,7 @@ class MPAPostHocAccounting:
             for feat1 in layer1.getFeatures():
                 feat_dict = {}
                 geom1 = feat1.geometry()
-                attr1 = feat1[layer1.fields().lookupField(field1.name())]
+                attr1 = feat1[layer1.fields().lookupField(field1)]
                 # loop through features in second shapefile
                 for feat2 in layer2.getFeatures():
                     geom2 = feat2.geometry()
@@ -325,30 +325,25 @@ class MPAPostHocAccounting:
                     attr_index = layer.fields().lookupField(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field, self.inMPAlayer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field.name(), self.inMPAlayer, self.inMPAfield)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
                         mpa_count = str(len([PA for PA in mpa_area_per_poly[uniqueID]]))
                         print_list = [uniqueID, sum_area, mpa_count]
-                        for attribute in print_list:
-                            if attribute == None:
-                                attribute = "NULL"
-                            if attribute == uniqueID:
-                                try:
-                                    attribute = int(uniqueID)
-                                except:
-                                    pass
+                        for i in range(len(print_list)):
+                            attribute = print_list[i]
+                            if i == 0:
                                 ws.write(row, 0, attribute)
-                            elif attribute == sum_area:
+                            elif i == 1:
                                 attribute = float(attribute)
-                                if attribute >= coverage_target/100.0:
+                                if attribute >= coverage_target / 100.0:
                                     style_string = green_style
                                 else:
                                     style_string = red_style
                                 style = xlwt.easyxf(style_string, num_format_str='0%')
                                 ws.write(row, 1, attribute, style)
-                            elif attribute == mpa_count:
+                            elif i == 2:
                                 attribute = int(attribute)
                                 if attribute >= repl_target:
                                     style_string = green_style
