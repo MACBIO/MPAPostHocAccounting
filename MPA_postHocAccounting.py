@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, qVersion, QCoreApplication, QFileInfo
+from PyQt5.QtCore import QFileInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog
 # Initialize Qt resources from file resources.py
@@ -119,10 +119,10 @@ class MPAPostHocAccounting:
         self.dlg_base.show()
         
         # select the MPA layer
-        self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
+        self.in_mpa_layer = self.dlg_base.inMPA_Layer.currentLayer()
 
         def set_layer_name():
-            self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
+            self.in_mpa_layer = self.dlg_base.inMPA_Layer.currentLayer()
 
         self.dlg_base.inMPA_Layer.layerChanged.connect(set_layer_name)
 
@@ -145,7 +145,7 @@ class MPAPostHocAccounting:
             layer_fields_tree = self.dlg_base.inData
             layer_fields_tree.clear()
             for layer in self.iface.mapCanvas().layers():
-                if layer.name() == self.inMPAlayer.name():
+                if layer.name() == self.in_mpa_layer.name():
                     pass
                 else:
                     tree_item = QTreeWidgetItem()
@@ -250,7 +250,7 @@ class MPAPostHocAccounting:
                 for row in range(table_widget.rowCount()):
                     layer_name = ''
                     coverage_target = 0
-                    repl_target = 0
+                    replication_target = 0
                     for column in range(table_widget.columnCount()):
                         table_item = table_widget.item(row, column)
                         if column == 0:
@@ -258,23 +258,23 @@ class MPAPostHocAccounting:
                         elif column == 1:
                             coverage_target = table_item.text()
                         elif column == 2:
-                            repl_target = table_item.text()
+                            replication_target = table_item.text()
                     self.checkPolyDict[layer_name]['coverageTarget'] = int(coverage_target)
-                    self.checkPolyDict[layer_name]['replTarget'] = int(repl_target)
+                    self.checkPolyDict[layer_name]['replTarget'] = int(replication_target)
             
                 # create a workbook
                 wb = xlwt.Workbook()
 
                 # analyse mpa size and distance to nearest MPA
                 # create dict of distances to other mpas
-                if self.inMPAlayer.featureCount() > 1:
+                if self.in_mpa_layer.featureCount() > 1:
                     dist_dict = {}
-                    for feat in self.inMPAlayer.getFeatures():
+                    for feat in self.in_mpa_layer.getFeatures():
                         geom = feat.geometry()
                         attr = feat.attribute(self.inMPAfield)
                         dist_list = []
                         attr_list = []
-                        for test_feature in self.inMPAlayer.getFeatures():
+                        for test_feature in self.in_mpa_layer.getFeatures():
                             dist = geom.distance(test_feature.geometry())
                             if dist == 0.0:
                                 pass
@@ -299,7 +299,7 @@ class MPAPostHocAccounting:
                     for item in dist_dict.keys():
                         ws.write(row, 0, item)
                         ws.write(row, 1, dist_dict[item][0])
-                        ws.write(row, 2, 111 * dist_dict[item][1]) # this is a rough conversion from DD to kilometres
+                        ws.write(row, 2, 111 * dist_dict[item][1])  # this is a rough conversion from DD to kilometres
                         row += 1
                 
                 # loop through polygon layers
@@ -314,18 +314,18 @@ class MPAPostHocAccounting:
                     layer = self.checkPolyDict[polyName]['layer']
                     field = self.checkPolyDict[polyName]['field']
                     coverage_target = self.checkPolyDict[polyName]['coverageTarget']
-                    repl_target = self.checkPolyDict[polyName]['replTarget']
+                    replication_target = self.checkPolyDict[polyName]['replTarget']
                     # write header
                     header_cells = [polyName + " " + field.name(),
                                     "Coverage" + " target=" + "{0:.0f}%".format(coverage_target),
-                                    "Replication" + ' target=' + str(repl_target)]
+                                    "Replication" + ' target=' + str(replication_target)]
                     for i in range(len(header_cells)):
                         ws.write(0, i, header_cells[i])
                     # create list of unique IDs for polygons
                     attr_index = layer.fields().lookupField(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field.name(), self.inMPAlayer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field.name(), self.in_mpa_layer, self.inMPAfield)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
@@ -345,7 +345,7 @@ class MPAPostHocAccounting:
                                 ws.write(row, 1, attribute, style)
                             elif i == 2:
                                 attribute = int(attribute)
-                                if attribute >= repl_target:
+                                if attribute >= replication_target:
                                     style_string = green_style
                                 else:
                                     style_string = red_style
