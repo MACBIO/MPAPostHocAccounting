@@ -358,3 +358,8 @@ class MPAPostHocAccounting:
                 wb.save(self.outXLS)
                 if os.path.exists(self.outXLS):
                     os.system(self.outXLS)
+
+                # clean up variables
+                self.in_mpa_layer = None
+                self.inMPAfield = None
+                self.checkPolyDict = None
