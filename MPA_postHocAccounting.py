@@ -231,8 +231,9 @@ class MPAPostHocAccounting:
             def out_file():
                 file_dialog = QFileDialog()
                 file_dialog.setOption(QFileDialog.DontConfirmOverwrite)
-                out_name = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", ".", "Spreadsheets (*.xls)")
-                out_path = QFileInfo(out_name[0]).absoluteFilePath()
+                file_dialog.setOption(QFileDialog.DontUseNativeDialog)
+                out_name, _filter = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", os.getenv('HOME'), "Spreadsheets (*.xls)")
+                out_path = QFileInfo(out_name).absoluteFilePath()
                 if not out_path.upper().endswith(".XLS"):
                     out_path = out_path + ".xls"
                 if out_name:
