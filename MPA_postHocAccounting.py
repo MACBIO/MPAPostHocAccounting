@@ -157,6 +157,8 @@ class MPAPostHocAccounting:
                         field_item = QTreeWidgetItem(tree_item)
                         field_item.setText(0, field.name())
                     layer_fields_tree.setItemExpanded(tree_item, True)
+                    
+        self.dlg_base.fieldComboBox.fieldChanged.connect(set_layers)
             
         # add selected layers and fields to processing list
         self.checkPolyDict = {}
@@ -178,16 +180,20 @@ class MPAPostHocAccounting:
         
         # function returns dict of dicts with area of intersection for two shapefiles
         def intersect_area(layer1, field1, layer2, field2):
+            print(layer1)
+            print(field1)
+            print(layer2)
+            print(field2)
             area_dict = {}
             # loop through features in first shapefile
             for feat1 in layer1.getFeatures():
                 feat_dict = {}
                 geom1 = feat1.geometry()
-                attr1 = feat1[layer1.fieldNameIndex(field1.name())]
+                attr1 = feat1[layer1.fieldNameIndex(field1)]
                 # loop through features in second shapefile
                 for feat2 in layer2.getFeatures():
                     geom2 = feat2.geometry()
-                    attr2 = feat2[layer2.fieldNameIndex(field2.name())]
+                    attr2 = feat2[layer2.fieldNameIndex(field2)]
                     # if features intersect then write feature attr and area to shape2 dict
                     if geom2.intersects(geom1):
                         intersection = geom1.intersection(geom2)
@@ -331,7 +337,7 @@ class MPAPostHocAccounting:
                     attr_index = layer.fieldNameIndex(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field, self.inMPAlayer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field.name(), self.inMPAlayer, self.inMPAfield)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
