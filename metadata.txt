@@ -26,7 +26,7 @@ repository=https://github.com/MACBIO/MPAPostHocAccounting
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=
+tags=python, mpa, allocation
 
 homepage=https://github.com/MACBIO/MPAPostHocAccounting
 category=Plugins

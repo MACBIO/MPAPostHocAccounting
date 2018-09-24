@@ -5,9 +5,9 @@
                                  A QGIS plugin
  This plugin checks how your MPAs meet your placement objectives
                               -------------------
-        begin                : 2017-03-02
+        begin                : 2018-09-24
         git sha              : $Format:%H$
-        copyright            : (C) 2017 by Jonah Sullivan
+        copyright            : (C) 2018 by Jonah Sullivan
         email                : jonahsullivan79@gmail.com
  ***************************************************************************/
 
@@ -48,55 +48,26 @@ class MPAPostHocAccounting:
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
-        # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'MPAPostHocAccounting_{}.qm'.format(locale))
-
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-
-            if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&MPA Post-Hoc Accounting')
-        # TODO: We are going to let the user set this up in a future iteration
+        self.menu = u'MPA Post-Hoc Accounting'
         self.toolbar = self.iface.addToolBar(u'MPAPostHocAccounting')
         self.toolbar.setObjectName(u'MPAPostHocAccounting')
 
-    # noinspection PyMethodMayBeStatic
-    def tr(self, message):
-        """Get the translation for a string using Qt translation API.
-
-        We implement this ourselves since we do not inherit QObject.
-
-        :param message: String for translation.
-        :type message: str, QString
-
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('MPAPostHocAccounting', message)
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+         self,
+         icon_path,
+         text,
+         callback,
+         enabled_flag=True,
+         add_to_menu=True,
+         add_to_toolbar=True,
+         status_tip=None,
+         whats_this=None,
+         parent=None):
 
-        # Create the dialog (after translation) and keep reference
+        # Create the dialog and keep reference
         self.dlg_base = MPAPostHocAccountingDialogBase()
         self.dlg_targets = MPAPostHocAccountingDialogTargets()
 
@@ -128,7 +99,7 @@ class MPAPostHocAccounting:
         icon_path = ':/plugins/MPAPostHocAccounting/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'MPA Post-Hoc Accounting'),
+            text=u'MPA Post-Hoc Accounting',
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -136,7 +107,7 @@ class MPAPostHocAccounting:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&MPA Post-Hoc Accounting'),
+                u'&MPA Post-Hoc Accounting',
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
@@ -166,7 +137,7 @@ class MPAPostHocAccounting:
         self.dlg_base.show()
         
         # select the MPA layer
-        self.inMPAlayer = QgsVectorLayer()
+        self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
 
         def set_mpa_layer():
             in_mpa_layername = self.dlg_base.inMPA_Layer.currentText()
@@ -192,11 +163,11 @@ class MPAPostHocAccounting:
             set_layers(layers)
             
         # add polygon layers and field names to tree widget
-        def set_layers(layers):
+        def set_layers():
             # add layer names and field names to analysis selection window
             layer_fields_tree = self.dlg_base.inData
             layer_fields_tree.clear()
-            for layer in layers:
+            for layer in self.iface.mapCanvas().layers():
                 if layer.name() == self.inMPAlayer.name():
                     pass
                 else:
@@ -219,8 +190,8 @@ class MPAPostHocAccounting:
                 if i.parent():
                     field_name = i.text(0)
                     layer_name = i.parent().text(0)
-                    for j in range(iface.mapCanvas().layerCount()):
-                        layer = iface.mapCanvas().layer(j)
+                    for j in range(self.iface.mapCanvas().layerCount()):
+                        layer = self.iface.mapCanvas().layer(j)
                         if layer.name() == layer_name:
                             for field in layer.pendingFields():
                                 if field.name() == field_name:
@@ -323,42 +294,41 @@ class MPAPostHocAccounting:
                 wb = xlwt.Workbook()
 
                 # analyse mpa size and distance to nearest MPA
-                mpalayer = self.inMPAlayer
-                mpafield = self.inMPAfield
-                #create dict of distances to other mpas
-                distDict = {}
-                for feat in mpalayer.getFeatures():
-                    geom = feat.geometry()
-                    attr = feat[mpalayer.fieldNameIndex(mpafield.name())]
-                    distList = []
-                    attrList = []
-                    for testfeat in mpalayer.getFeatures():
-                        dist = geom.distance(testfeat.geometry())
-                        if dist == 0.0:
-                            pass
-                        else:
-                            distList.append(dist)
-                            attrList.append(testfeat[mpalayer.fieldNameIndex(mpafield.name())])
+                # create dict of distances to other mpas
+                if self.inMPAlayer.featureCount() > 1:
+                    dist_dict = {}
+                    for feat in self.inMPAlayer.getFeatures():
+                        geom = feat.geometry()
+                        attr = feat.attribute(self.inMPAfield)
+                        dist_list = []
+                        attr_list = []
+                        for test_feature in self.inMPAlayer.getFeatures():
+                            dist = geom.distance(test_feature.geometry())
+                            if dist == 0.0:
+                                pass
+                            else:
+                                dist_list.append(dist)
+                                attr_list.append(test_feature.attribute(self.inMPAfield))
 
-                    # add values to dictionary
-                    mindist = min(distList)
-                    minattr = attrList[distList.index(mindist)]
-                    distDict[attr] = [minattr, mindist]
+                        # add values to dictionary
+                        mindist = min(dist_list)
+                        minattr = attr_list[dist_list.index(mindist)]
+                        dist_dict[attr] = [minattr, mindist]
 
-                # write closest mpa to workbook
-                ws = wb.add_sheet("Distances")
-                row = 0
-                # write header
-                header_cells = ["MPA ID", "Nearest MPA", "Distance (km)"]
-                for i in range(len(header_cells)):
-                    ws.write(row, i, header_cells[i])
-                row += 1
-                # write values
-                for item in distDict.keys():
-                    ws.write(row, 0, item)
-                    ws.write(row, 1, distDict[item][0])
-                    ws.write(row, 2, 111 * distDict[item][1]) # this is a rough conversion from DD to kilometres
+                    # write closest mpa to workbook
+                    ws = wb.add_sheet("Distances")
+                    row = 0
+                    # write header
+                    header_cells = ["MPA ID", "Nearest MPA", "Distance (km)"]
+                    for i in range(len(header_cells)):
+                        ws.write(row, i, header_cells[i])
                     row += 1
+                    # write values
+                    for item in dist_dict.keys():
+                        ws.write(row, 0, item)
+                        ws.write(row, 1, dist_dict[item][0])
+                        ws.write(row, 2, 111 * dist_dict[item][1]) # this is a rough conversion from DD to kilometres
+                        row += 1
                 
                 # loop through polygon layers
                 for polyName in self.checkPolyDict.keys():
@@ -375,8 +345,8 @@ class MPAPostHocAccounting:
                     repl_target = self.checkPolyDict[polyName]['replTarget']
                     # write header
                     header_cells = [polyName + " " + field.name(),
-                                   "Coverage" + " target=" + "{0:.0f}%".format(coverage_target),
-                                   "Replication" + ' target=' + str(repl_target)]
+                                    "Coverage" + " target=" + "{0:.0f}%".format(coverage_target),
+                                    "Replication" + ' target=' + str(repl_target)]
                     for i in range(len(header_cells)):
                         ws.write(0, i, header_cells[i])
                     # create list of unique IDs for polygons
@@ -390,6 +360,8 @@ class MPAPostHocAccounting:
                         mpa_count = str(len([PA for PA in mpa_area_per_poly[uniqueID]]))
                         print_list = [uniqueID, sum_area, mpa_count]
                         for attribute in print_list:
+                            if attribute == None:
+                                attribute = "NULL"
                             if attribute == uniqueID:
                                 try:
                                     attribute = int(uniqueID)

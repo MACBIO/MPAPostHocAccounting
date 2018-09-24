@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>387</width>
-    <height>714</height>
+    <height>508</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,7 +30,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="inMPA_Layer"/>
+      <widget class="QgsMapLayerComboBox" name="inMPA_Layer"/>
      </item>
     </layout>
    </item>
@@ -50,7 +50,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="inMPA_Field"/>
+      <widget class="QgsFieldComboBox" name="fieldComboBox"/>
      </item>
     </layout>
    </item>
@@ -110,6 +110,18 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFieldComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsfieldcombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsMapLayerComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

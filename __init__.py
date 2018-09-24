@@ -5,8 +5,8 @@
                                  A QGIS plugin
  This plugin checks how your MPAs meet your placement objectives
                              -------------------
-        begin                : 2017-03-02
-        copyright            : (C) 2017 by Jonah Sullivan
+        begin                : 2018-09-18
+        copyright            : (C) 2018 by Jonah Sullivan
         email                : jonahsullivan79@gmail.com
         git sha              : $Format:%H$
  ***************************************************************************/
