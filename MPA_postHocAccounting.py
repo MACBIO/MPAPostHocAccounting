@@ -114,6 +114,18 @@ class MPAPostHocAccounting:
 
     def run(self):
         """Run method that performs all the real work"""
+        
+        # clear old variables
+        self.inMPAlayer = None
+        self.dlg_base.fieldComboBox.setLayer(None)
+        iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
+        while iterator.value():
+            iterator.value().takeChildren()
+            iterator +=1
+        i = self.dlg_base.inData.topLevelItemCount()
+        while i > -1:
+            self.dlg_base.inData.takeTopLevelItem(i)
+            i -= 1
 
         # show the window
         self.dlg_base.show()
@@ -204,7 +216,7 @@ class MPAPostHocAccounting:
         result_base = self.dlg_base.exec_()
         if result_base:
             table_widget = self.dlg_targets.tableWidget
-            table_widget.clearContents()
+            table_widget.setRowCount(0)
             row = 0
             for layer in self.checkPolyDict.keys():
                 table_widget.insertRow(row)
@@ -331,7 +343,7 @@ class MPAPostHocAccounting:
                     attr_index = layer.fields().lookupField(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field, self.inMPAlayer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field.name(), self.inMPAlayer, self.inMPAfield)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
