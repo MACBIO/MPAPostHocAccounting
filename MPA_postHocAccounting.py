@@ -20,14 +20,15 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, qVersion, QCoreApplication, QFileInfo
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+from qgis.core import *
+from qgis.utils import *
 # Initialize Qt resources from file resources.py
-from .resources import *
+import resources
 # Import the code for the dialog
-from .MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
-from .MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
+from MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
+from MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
 import xlwt
 
@@ -114,6 +115,18 @@ class MPAPostHocAccounting:
 
     def run(self):
         """Run method that performs all the real work"""
+        
+        # clear old variables
+        self.inMPAlayer = None
+        self.dlg_base.fieldComboBox.setLayer(None)
+        iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
+        while iterator.value():
+            iterator.value().takeChildren()
+            iterator +=1
+        i = self.dlg_base.inData.topLevelItemCount()
+        while i > -1:
+            self.dlg_base.inData.takeTopLevelItem(i)
+            i -= 1
 
         # show the window
         self.dlg_base.show()
@@ -151,11 +164,12 @@ class MPAPostHocAccounting:
                     tree_item = QTreeWidgetItem()
                     layer_fields_tree.addTopLevelItem(tree_item)
                     tree_item.setText(0, layer.name())
-                    for field in layer.fields():
+                    fields = layer.pendingFields()
+                    for field in fields:
                         field_item = QTreeWidgetItem(tree_item)
                         field_item.setText(0, field.name())
-            self.dlg_base.inData.expandAll()
-
+                    layer_fields_tree.setItemExpanded(tree_item, True)
+                    
         self.dlg_base.fieldComboBox.fieldChanged.connect(set_layers)
             
         # add selected layers and fields to processing list
@@ -171,7 +185,7 @@ class MPAPostHocAccounting:
                     for j in range(self.iface.mapCanvas().layerCount()):
                         layer = self.iface.mapCanvas().layer(j)
                         if layer.name() == layer_name:
-                            for field in layer.fields():
+                            for field in layer.pendingFields():
                                 if field.name() == field_name:
                                     self.checkPolyDict[layer_name] = {'layer': layer, 'field': field}
         self.dlg_base.inData.itemSelectionChanged.connect(tree_selection_changed)
@@ -183,11 +197,11 @@ class MPAPostHocAccounting:
             for feat1 in layer1.getFeatures():
                 feat_dict = {}
                 geom1 = feat1.geometry()
-                attr1 = feat1[layer1.fields().lookupField(field1.name())]
+                attr1 = feat1[layer1.fieldNameIndex(field1)]
                 # loop through features in second shapefile
                 for feat2 in layer2.getFeatures():
                     geom2 = feat2.geometry()
-                    attr2 = feat2[layer2.fields().lookupField(field2)]
+                    attr2 = feat2[layer2.fieldNameIndex(field2)]
                     # if features intersect then write feature attr and area to shape2 dict
                     if geom2.intersects(geom1):
                         intersection = geom1.intersection(geom2)
@@ -204,7 +218,7 @@ class MPAPostHocAccounting:
         result_base = self.dlg_base.exec_()
         if result_base:
             table_widget = self.dlg_targets.tableWidget
-            table_widget.clearContents()
+            table_widget.setRowCount(0)
             row = 0
             for layer in self.checkPolyDict.keys():
                 table_widget.insertRow(row)
@@ -236,9 +250,9 @@ class MPAPostHocAccounting:
 
             def out_file():
                 file_dialog = QFileDialog()
-                file_dialog.setOption(QFileDialog.DontConfirmOverwrite)
+                file_dialog.setConfirmOverwrite(False)
                 out_name = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", os.getenv('HOME'), "Spreadsheets (*.xls)")
-                out_path = QFileInfo(out_name[0]).absoluteFilePath()
+                out_path = QFileInfo(out_name).absoluteFilePath()
                 if not out_path.upper().endswith(".XLS"):
                     out_path = out_path + ".xls"
                 if out_name:
@@ -328,10 +342,10 @@ class MPAPostHocAccounting:
                     for i in range(len(header_cells)):
                         ws.write(0, i, header_cells[i])
                     # create list of unique IDs for polygons
-                    attr_index = layer.fields().lookupField(field.name())
+                    attr_index = layer.fieldNameIndex(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field, self.inMPAlayer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field.name(), self.inMPAlayer, self.inMPAfield)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
