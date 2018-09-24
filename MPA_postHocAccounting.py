@@ -115,52 +115,30 @@ class MPAPostHocAccounting:
 
     def run(self):
         """Run method that performs all the real work"""
-        # find all of the layers in the map
-        layers = []
-        for i in range(iface.mapCanvas().layerCount()):
-            layer = iface.mapCanvas().layer(i)
-            if layer.type() == layer.VectorLayer:
-                if layer.geometryType() == QGis.Polygon:
-                    layers.append(layer)
-       
-        # list of layer names
-        lyr_name_list = [layer.name() for layer in layers]
-        
-        # clear the MPA layer dropdown
-        self.dlg_base.inMPA_Layer.clear()
-        
-        # add layer names to MPA layer dropdown
-        self.dlg_base.inMPA_Layer.addItem('select MPA layer')
-        self.dlg_base.inMPA_Layer.addItems(lyr_name_list)
-        
+
         # show the window
         self.dlg_base.show()
         
         # select the MPA layer
         self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
 
-        def set_mpa_layer():
-            in_mpa_layername = self.dlg_base.inMPA_Layer.currentText()
-            for i in range(iface.mapCanvas().layerCount()):
-                    layer = iface.mapCanvas().layer(i)
-                    if layer.name() == in_mpa_layername:
-                        self.inMPAlayer = layer
-                        # select MPA unique field next
-                        field_name_list = [field.name() for field in self.inMPAlayer.fields()]
-                        self.dlg_base.inMPA_Field.clear()
-                        self.dlg_base.inMPA_Field.addItems(field_name_list)
-                        set_mpa_field(layer)
-        self.dlg_base.inMPA_Layer.currentIndexChanged.connect(set_mpa_layer)
-        
-        # set the MPA field
-        self.inMPAfield = QgsField()
+        def set_layer_name():
+            self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
 
-        def set_mpa_field(layer):
-            in_mpa_fieldname = self.dlg_base.inMPA_Field.currentText()
-            for field in layer.pendingFields():
-                if field.name() == in_mpa_fieldname:
-                    self.inMPAfield = field
-            set_layers(layers)
+        self.dlg_base.inMPA_Layer.layerChanged.connect(set_layer_name)
+
+        # set the mpaLayer for the field combo box
+        def set_field_combo_box_layer(in_layer):
+            self.dlg_base.fieldComboBox.setLayer(in_layer)
+
+        self.dlg_base.inMPA_Layer.layerChanged.connect(set_field_combo_box_layer)
+        
+        # set the MPA unique identifier field
+        def set_mpa_field():
+            self.inMPAfield = self.dlg_base.fieldComboBox.currentField()
+
+        self.dlg_base.fieldComboBox.fieldChanged.connect(set_mpa_field)
+        self.inMPAfield = self.dlg_base.fieldComboBox.currentField()
             
         # add polygon layers and field names to tree widget
         def set_layers():
