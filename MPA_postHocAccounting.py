@@ -5,9 +5,9 @@
                                  A QGIS plugin
  This plugin checks how your MPAs meet your placement objectives
                               -------------------
-        begin                : 2017-03-02
+        begin                : 2018-09-24
         git sha              : $Format:%H$
-        copyright            : (C) 2017 by Jonah Sullivan
+        copyright            : (C) 2018 by Jonah Sullivan
         email                : jonahsullivan79@gmail.com
  ***************************************************************************/
 
@@ -20,7 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QFileInfo
+from PyQt5.QtCore import QSettings, qVersion, QCoreApplication, QFileInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog
 # Initialize Qt resources from file resources.py
@@ -119,10 +119,10 @@ class MPAPostHocAccounting:
         self.dlg_base.show()
         
         # select the MPA layer
-        self.in_mpa_layer = self.dlg_base.inMPA_Layer.currentLayer()
+        self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
 
         def set_layer_name():
-            self.in_mpa_layer = self.dlg_base.inMPA_Layer.currentLayer()
+            self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
 
         self.dlg_base.inMPA_Layer.layerChanged.connect(set_layer_name)
 
@@ -145,7 +145,7 @@ class MPAPostHocAccounting:
             layer_fields_tree = self.dlg_base.inData
             layer_fields_tree.clear()
             for layer in self.iface.mapCanvas().layers():
-                if layer.name() == self.in_mpa_layer.name():
+                if layer.name() == self.inMPAlayer.name():
                     pass
                 else:
                     tree_item = QTreeWidgetItem()
@@ -183,7 +183,7 @@ class MPAPostHocAccounting:
             for feat1 in layer1.getFeatures():
                 feat_dict = {}
                 geom1 = feat1.geometry()
-                attr1 = feat1[layer1.fields().lookupField(field1)]
+                attr1 = feat1[layer1.fields().lookupField(field1.name())]
                 # loop through features in second shapefile
                 for feat2 in layer2.getFeatures():
                     geom2 = feat2.geometry()
@@ -204,7 +204,7 @@ class MPAPostHocAccounting:
         result_base = self.dlg_base.exec_()
         if result_base:
             table_widget = self.dlg_targets.tableWidget
-            self.dlg_targets.tableWidget.clearContents()
+            table_widget.clearContents()
             row = 0
             for layer in self.checkPolyDict.keys():
                 table_widget.insertRow(row)
@@ -223,6 +223,12 @@ class MPAPostHocAccounting:
                     table_item.setText(str(val))
                     table_widget.setItem(row, column, table_item)
                     
+            # resize columns to fit contents
+            header = table_widget.horizontalHeader()
+            header.setResizeMode(0, QHeaderView.Stretch)
+            header.setResizeMode(1, QHeaderView.ResizeToContents)
+            header.setResizeMode(2, QHeaderView.ResizeToContents)
+            
             self.dlg_targets.show()
             
             # display file dialog to select output spreadsheet
@@ -231,9 +237,8 @@ class MPAPostHocAccounting:
             def out_file():
                 file_dialog = QFileDialog()
                 file_dialog.setOption(QFileDialog.DontConfirmOverwrite)
-                file_dialog.setOption(QFileDialog.DontUseNativeDialog)
-                out_name, _filter = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", os.getenv('HOME'), "Spreadsheets (*.xls)")
-                out_path = QFileInfo(out_name).absoluteFilePath()
+                out_name = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", ".", "Spreadsheets (*.xls)")
+                out_path = QFileInfo(out_name[0]).absoluteFilePath()
                 if not out_path.upper().endswith(".XLS"):
                     out_path = out_path + ".xls"
                 if out_name:
@@ -251,7 +256,7 @@ class MPAPostHocAccounting:
                 for row in range(table_widget.rowCount()):
                     layer_name = ''
                     coverage_target = 0
-                    replication_target = 0
+                    repl_target = 0
                     for column in range(table_widget.columnCount()):
                         table_item = table_widget.item(row, column)
                         if column == 0:
@@ -259,23 +264,23 @@ class MPAPostHocAccounting:
                         elif column == 1:
                             coverage_target = table_item.text()
                         elif column == 2:
-                            replication_target = table_item.text()
+                            repl_target = table_item.text()
                     self.checkPolyDict[layer_name]['coverageTarget'] = int(coverage_target)
-                    self.checkPolyDict[layer_name]['replTarget'] = int(replication_target)
+                    self.checkPolyDict[layer_name]['replTarget'] = int(repl_target)
             
                 # create a workbook
                 wb = xlwt.Workbook()
 
                 # analyse mpa size and distance to nearest MPA
                 # create dict of distances to other mpas
-                if self.in_mpa_layer.featureCount() > 1:
+                if self.inMPAlayer.featureCount() > 1:
                     dist_dict = {}
-                    for feat in self.in_mpa_layer.getFeatures():
+                    for feat in self.inMPAlayer.getFeatures():
                         geom = feat.geometry()
                         attr = feat.attribute(self.inMPAfield)
                         dist_list = []
                         attr_list = []
-                        for test_feature in self.in_mpa_layer.getFeatures():
+                        for test_feature in self.inMPAlayer.getFeatures():
                             dist = geom.distance(test_feature.geometry())
                             if dist == 0.0:
                                 pass
@@ -300,7 +305,7 @@ class MPAPostHocAccounting:
                     for item in dist_dict.keys():
                         ws.write(row, 0, item)
                         ws.write(row, 1, dist_dict[item][0])
-                        ws.write(row, 2, 111 * dist_dict[item][1])  # this is a rough conversion from DD to kilometres
+                        ws.write(row, 2, 111 * dist_dict[item][1]) # this is a rough conversion from DD to kilometres
                         row += 1
                 
                 # loop through polygon layers
@@ -315,38 +320,43 @@ class MPAPostHocAccounting:
                     layer = self.checkPolyDict[polyName]['layer']
                     field = self.checkPolyDict[polyName]['field']
                     coverage_target = self.checkPolyDict[polyName]['coverageTarget']
-                    replication_target = self.checkPolyDict[polyName]['replTarget']
+                    repl_target = self.checkPolyDict[polyName]['replTarget']
                     # write header
                     header_cells = [polyName + " " + field.name(),
                                     "Coverage" + " target=" + "{0:.0f}%".format(coverage_target),
-                                    "Replication" + ' target=' + str(replication_target)]
+                                    "Replication" + ' target=' + str(repl_target)]
                     for i in range(len(header_cells)):
                         ws.write(0, i, header_cells[i])
                     # create list of unique IDs for polygons
                     attr_index = layer.fields().lookupField(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field.name(), self.in_mpa_layer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field, self.inMPAlayer, self.inMPAfield)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
                         mpa_count = str(len([PA for PA in mpa_area_per_poly[uniqueID]]))
                         print_list = [uniqueID, sum_area, mpa_count]
-                        for i in range(len(print_list)):
-                            attribute = print_list[i]
-                            if i == 0:
+                        for attribute in print_list:
+                            if attribute == None:
+                                attribute = "NULL"
+                            if attribute == uniqueID:
+                                try:
+                                    attribute = int(uniqueID)
+                                except:
+                                    pass
                                 ws.write(row, 0, attribute)
-                            elif i == 1:
+                            elif attribute == sum_area:
                                 attribute = float(attribute)
-                                if attribute >= coverage_target / 100.0:
+                                if attribute >= coverage_target/100.0:
                                     style_string = green_style
                                 else:
                                     style_string = red_style
                                 style = xlwt.easyxf(style_string, num_format_str='0%')
                                 ws.write(row, 1, attribute, style)
-                            elif i == 2:
+                            elif attribute == mpa_count:
                                 attribute = int(attribute)
-                                if attribute >= replication_target:
+                                if attribute >= repl_target:
                                     style_string = green_style
                                 else:
                                     style_string = red_style
@@ -358,8 +368,3 @@ class MPAPostHocAccounting:
                 wb.save(self.outXLS)
                 if os.path.exists(self.outXLS):
                     os.system(self.outXLS)
-
-                # clean up variables
-                self.in_mpa_layer = None
-                self.inMPAfield = None
-                self.checkPolyDict = None
