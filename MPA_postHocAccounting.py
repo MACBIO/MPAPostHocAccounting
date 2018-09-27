@@ -22,7 +22,7 @@
 """
 from PyQt5.QtCore import QSettings, qVersion, QCoreApplication, QFileInfo
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog
+from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog, QTreeWidgetItemIterator
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
