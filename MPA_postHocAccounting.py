@@ -236,10 +236,10 @@ class MPAPostHocAccounting:
                     table_widget.setItem(row, column, table_item)
                     
             # resize columns to fit contents
-            header = table_widget.horizontalHeader()
-            header.setResizeMode(0, QHeaderView.Stretch)
-            header.setResizeMode(1, QHeaderView.ResizeToContents)
-            header.setResizeMode(2, QHeaderView.ResizeToContents)
+            # header = table_widget.horizontalHeader()
+            # header.setResizeMode(0, QHeaderView.Stretch)
+            # header.setResizeMode(1, QHeaderView.ResizeToContents)
+            # header.setResizeMode(2, QHeaderView.ResizeToContents)
             
             self.dlg_targets.show()
             
