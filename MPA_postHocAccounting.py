@@ -195,7 +195,7 @@ class MPAPostHocAccounting:
             for feat1 in layer1.getFeatures():
                 feat_dict = {}
                 geom1 = feat1.geometry()
-                attr1 = feat1[layer1.fields().lookupField(field1.name())]
+                attr1 = feat1[layer1.fields().lookupField(field1)]
                 # loop through features in second shapefile
                 for feat2 in layer2.getFeatures():
                     geom2 = feat2.geometry()
