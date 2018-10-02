@@ -23,8 +23,6 @@
 from PyQt4.QtCore import QFileInfo
 from PyQt4.QtGui import QIcon
 from PyQt4.QtGui import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog, QTreeWidgetItemIterator, QHeaderView
-from qgis.core import *
-from qgis.utils import *
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
