@@ -122,7 +122,7 @@ class MPAPostHocAccounting:
         iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
         while iterator.value():
             iterator.value().takeChildren()
-            iterator +=1
+            iterator += 1
         i = self.dlg_base.inData.topLevelItemCount()
         while i > -1:
             self.dlg_base.inData.takeTopLevelItem(i)
@@ -319,7 +319,7 @@ class MPAPostHocAccounting:
                     for item in dist_dict.keys():
                         ws.write(row, 0, item)
                         ws.write(row, 1, dist_dict[item][0])
-                        ws.write(row, 2, 111 * dist_dict[item][1]) # this is a rough conversion from DD to kilometres
+                        ws.write(row, 2, 111 * dist_dict[item][1])  # this is a rough conversion from DD to kilometres
                         row += 1
                 
                 # loop through polygon layers
@@ -352,7 +352,7 @@ class MPAPostHocAccounting:
                         mpa_count = str(len([PA for PA in mpa_area_per_poly[uniqueID]]))
                         print_list = [uniqueID, sum_area, mpa_count]
                         for attribute in print_list:
-                            if attribute == None:
+                            if attribute is None:
                                 attribute = "NULL"
                             if attribute == uniqueID:
                                 try:
