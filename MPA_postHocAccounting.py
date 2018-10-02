@@ -20,9 +20,14 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, qVersion, QCoreApplication, QFileInfo
+from PyQt5.QtCore import QFileInfo
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog, QTreeWidgetItemIterator
+from PyQt5.QtWidgets import QAction, \
+    QTreeWidgetItem, \
+    QTableWidgetItem, \
+    QFileDialog, \
+    QTreeWidgetItemIterator, \
+    QHeaderView
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
@@ -121,7 +126,7 @@ class MPAPostHocAccounting:
         iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
         while iterator.value():
             iterator.value().takeChildren()
-            iterator +=1
+            iterator += 1
         i = self.dlg_base.inData.topLevelItemCount()
         while i > -1:
             self.dlg_base.inData.takeTopLevelItem(i)
@@ -236,10 +241,10 @@ class MPAPostHocAccounting:
                     table_widget.setItem(row, column, table_item)
                     
             # resize columns to fit contents
-            # header = table_widget.horizontalHeader()
-            # header.setResizeMode(0, QHeaderView.Stretch)
-            # header.setResizeMode(1, QHeaderView.ResizeToContents)
-            # header.setResizeMode(2, QHeaderView.ResizeToContents)
+            header = table_widget.horizontalHeader()
+            header.setSectionResizeMode(0, QHeaderView.Stretch)
+            header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+            header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
             
             self.dlg_targets.show()
             
@@ -317,7 +322,7 @@ class MPAPostHocAccounting:
                     for item in dist_dict.keys():
                         ws.write(row, 0, item)
                         ws.write(row, 1, dist_dict[item][0])
-                        ws.write(row, 2, 111 * dist_dict[item][1]) # this is a rough conversion from DD to kilometres
+                        ws.write(row, 2, 111 * dist_dict[item][1])  # this is a rough conversion from DD to kilometres
                         row += 1
                 
                 # loop through polygon layers
@@ -350,7 +355,7 @@ class MPAPostHocAccounting:
                         mpa_count = str(len([PA for PA in mpa_area_per_poly[uniqueID]]))
                         print_list = [uniqueID, sum_area, mpa_count]
                         for attribute in print_list:
-                            if attribute == None:
+                            if attribute is None:
                                 attribute = "NULL"
                             if attribute == uniqueID:
                                 try:
