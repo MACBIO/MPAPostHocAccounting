@@ -24,10 +24,10 @@ from PyQt5.QtCore import QFileInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog, QTreeWidgetItemIterator, QHeaderView
 # Initialize Qt resources from file resources.py
-from .resources import *
+from MPAPostHocAccounting.resources import *
 # Import the code for the dialog
-from .MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
-from .MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
+from MPAPostHocAccounting.MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
+from MPAPostHocAccounting.MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
 import xlwt
 
