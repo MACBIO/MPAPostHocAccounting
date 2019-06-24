@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>387</width>
-    <height>508</height>
+    <width>564</width>
+    <height>631</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,6 +66,13 @@
        </property>
        <property name="text">
         <string>Layers to analyse MPA network placement objectives</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>All Layers must use the same projection</string>
        </property>
       </widget>
      </item>

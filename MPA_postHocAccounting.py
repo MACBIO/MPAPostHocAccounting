@@ -30,6 +30,7 @@ from MPAPostHocAccounting.MPA_postHocAccounting_dialog_base import MPAPostHocAcc
 from MPAPostHocAccounting.MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
 import xlwt
+from qgis.core import QgsDistanceArea
 
 
 class MPAPostHocAccounting:
@@ -297,6 +298,14 @@ class MPAPostHocAccounting:
                             if dist == 0.0:
                                 pass
                             else:
+                                # vertex in test feature closest to centroid of feature
+                                closest_vertex = geom.closestVertex(test_feature.geometry().centroid().asPoint())
+                                # vertex in feature closest to centroid of test feature
+                                closest_vertex_test = test_feature.geometry().closestVertex(geom.centroid().asPoint())
+                                # tool to measure distance between points (in metres)
+                                d = QgsDistanceArea()
+                                d.setEllipsoid('WGS84')
+                                dist = d.measureLine(closest_vertex[0], closest_vertex_test[0]) # distance in metres
                                 dist_list.append(dist)
                                 attr_list.append(test_feature.attribute(self.inMPAfield))
 
@@ -317,7 +326,7 @@ class MPAPostHocAccounting:
                     for item in dist_dict.keys():
                         ws.write(row, 0, item)
                         ws.write(row, 1, dist_dict[item][0])
-                        ws.write(row, 2, 111 * dist_dict[item][1])  # this is a rough conversion from DD to kilometres
+                        ws.write(row, 2, dist_dict[item][1] / 1000)  # conversion from metres to kilometres
                         row += 1
                 
                 # loop through polygon layers
