@@ -24,13 +24,13 @@ from PyQt5.QtCore import QFileInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog, QTreeWidgetItemIterator, QHeaderView
 # Initialize Qt resources from file resources.py
-from MPAPostHocAccounting.resources import *
+from .resources import *
 # Import the code for the dialog
-from MPAPostHocAccounting.MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
-from MPAPostHocAccounting.MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
+from .MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
+from .MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
 import xlwt
-from qgis.core import QgsDistanceArea
+from qgis.core import QgsDistanceArea, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext
 
 
 class MPAPostHocAccounting:
@@ -305,7 +305,13 @@ class MPAPostHocAccounting:
                                 # tool to measure distance between points (in metres)
                                 d = QgsDistanceArea()
                                 d.setEllipsoid('WGS84')
-                                dist = d.measureLine(closest_vertex[0], closest_vertex_test[0]) # distance in metres
+                                canvas_auth_id = self.iface.mapCanvas().mapSettings().destinationCrs().authid()
+                                canvas_crs = QgsCoordinateReferenceSystem(canvas_auth_id)
+                                ellipsoid_crs = QgsCoordinateReferenceSystem(4326)
+                                trans_context = QgsCoordinateTransformContext()
+                                trans_context.calculateDatumTransforms(canvas_crs, ellipsoid_crs)
+                                d.setSourceCrs(canvas_crs, trans_context)
+                                dist = d.measureLine(closest_vertex[0], closest_vertex_test[0])  # distance in metres
                                 dist_list.append(dist)
                                 attr_list.append(test_feature.attribute(self.inMPAfield))
 
