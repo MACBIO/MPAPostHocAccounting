@@ -55,6 +55,12 @@ class MPAPostHocAccounting:
         self.toolbar = self.iface.addToolBar(u'MPAPostHocAccounting')
         self.toolbar.setObjectName(u'MPAPostHocAccounting')
 
+        # initialise and clear variables
+        self.out_xls = None
+        self.in_mpa_field = None
+        self.in_map_layer = None
+        self.check_poly_dict = None
+
     def add_action(
          self,
          icon_path,
@@ -117,7 +123,6 @@ class MPAPostHocAccounting:
         """Run method that performs all the real work"""
         
         # clear old variables
-        self.inMPAlayer = None
         self.dlg_base.fieldComboBox.setLayer(None)
         iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
         while iterator.value():
@@ -132,10 +137,10 @@ class MPAPostHocAccounting:
         self.dlg_base.show()
         
         # select the MPA layer
-        self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
+        self.in_map_layer = self.dlg_base.inMPA_Layer.currentLayer()
 
         def set_layer_name():
-            self.inMPAlayer = self.dlg_base.inMPA_Layer.currentLayer()
+            self.in_map_layer = self.dlg_base.inMPA_Layer.currentLayer()
 
         self.dlg_base.inMPA_Layer.layerChanged.connect(set_layer_name)
 
@@ -147,10 +152,10 @@ class MPAPostHocAccounting:
         
         # set the MPA unique identifier field
         def set_mpa_field():
-            self.inMPAfield = self.dlg_base.fieldComboBox.currentField()
+            self.in_mpa_field = self.dlg_base.fieldComboBox.currentField()
 
         self.dlg_base.fieldComboBox.fieldChanged.connect(set_mpa_field)
-        self.inMPAfield = self.dlg_base.fieldComboBox.currentField()
+        self.in_mpa_field = self.dlg_base.fieldComboBox.currentField()
             
         # add polygon layers and field names to tree widget
         def set_layers():
@@ -158,7 +163,7 @@ class MPAPostHocAccounting:
             layer_fields_tree = self.dlg_base.inData
             layer_fields_tree.clear()
             for layer in self.iface.mapCanvas().layers():
-                if layer.name() == self.inMPAlayer.name():
+                if layer.name() == self.in_map_layer.name():
                     pass
                 else:
                     tree_item = QTreeWidgetItem()
@@ -172,10 +177,10 @@ class MPAPostHocAccounting:
         self.dlg_base.fieldComboBox.fieldChanged.connect(set_layers)
             
         # add selected layers and fields to processing list
-        self.checkPolyDict = {}
+        self.check_poly_dict = {}
 
         def tree_selection_changed():
-            self.checkPolyDict = {}
+            self.check_poly_dict = {}
             get_selected = self.dlg_base.inData.selectedItems()
             for i in get_selected:
                 if i.parent():
@@ -186,7 +191,7 @@ class MPAPostHocAccounting:
                         if layer.name() == layer_name:
                             for field in layer.fields():
                                 if field.name() == field_name:
-                                    self.checkPolyDict[layer_name] = {'layer': layer, 'field': field}
+                                    self.check_poly_dict[layer_name] = {'layer': layer, 'field': field}
         self.dlg_base.inData.itemSelectionChanged.connect(tree_selection_changed)
         
         # function returns dict of dicts with area of intersection for two shapefiles
@@ -219,7 +224,7 @@ class MPAPostHocAccounting:
             table_widget = self.dlg_targets.tableWidget
             table_widget.setRowCount(0)
             row = 0
-            for layer in self.checkPolyDict.keys():
+            for layer in self.check_poly_dict.keys():
                 table_widget.insertRow(row)
                 table_item = QTableWidgetItem()
                 table_item.setText(layer)
@@ -245,23 +250,18 @@ class MPAPostHocAccounting:
             self.dlg_targets.show()
             
             # display file dialog to select output spreadsheet
-            self.outXLS = ''
-
             def out_file():
-                file_dialog = QFileDialog()
-                file_dialog.setOption(QFileDialog.DontConfirmOverwrite)
-                out_name = file_dialog.getSaveFileName(file_dialog, "Output Spreadsheet", os.getenv('HOME'), "Spreadsheets (*.xls)")
-                out_path = QFileInfo(out_name[0]).absoluteFilePath()
+                out_name, _ = QFileDialog.getSaveFileName(None, "Output Spreadsheet", os.getenv('HOME'), "Spreadsheets (*.xls)")
+                out_path = QFileInfo(out_name).absoluteFilePath()
                 if not out_path.upper().endswith(".XLS"):
                     out_path = out_path + ".xls"
                 if out_name:
-                    self.outXLS = out_path
-                    self.dlg_targets.outTable.clear()
-                    self.dlg_targets.outTable.insert(out_path)
+                    self.out_xls = out_path
+                    self.dlg_targets.outTable.setText(out_path)
            
             # select output spreadsheet file
             self.dlg_targets.outButton.clicked.connect(out_file)
-            
+
             # this part is executed after the ok button is pressed on the targets window
             result_target = self.dlg_targets.exec_()
             if result_target:
@@ -278,22 +278,22 @@ class MPAPostHocAccounting:
                             coverage_target = table_item.text()
                         elif column == 2:
                             repl_target = table_item.text()
-                    self.checkPolyDict[layer_name]['coverageTarget'] = int(coverage_target)
-                    self.checkPolyDict[layer_name]['replTarget'] = int(repl_target)
+                    self.check_poly_dict[layer_name]['coverageTarget'] = int(coverage_target)
+                    self.check_poly_dict[layer_name]['replTarget'] = int(repl_target)
             
                 # create a workbook
                 wb = xlwt.Workbook()
 
                 # analyse mpa size and distance to nearest MPA
                 # create dict of distances to other mpas
-                if self.inMPAlayer.featureCount() > 1:
+                if self.in_map_layer.featureCount() > 1:
                     dist_dict = {}
-                    for feat in self.inMPAlayer.getFeatures():
+                    for feat in self.in_map_layer.getFeatures():
                         geom = feat.geometry()
-                        attr = feat.attribute(self.inMPAfield)
+                        attr = feat.attribute(self.in_mpa_field)
                         dist_list = []
                         attr_list = []
-                        for test_feature in self.inMPAlayer.getFeatures():
+                        for test_feature in self.in_map_layer.getFeatures():
                             dist = geom.distance(test_feature.geometry())
                             if dist == 0.0:
                                 pass
@@ -313,7 +313,7 @@ class MPAPostHocAccounting:
                                 d.setSourceCrs(canvas_crs, trans_context)
                                 dist = d.measureLine(closest_vertex[0], closest_vertex_test[0])  # distance in metres
                                 dist_list.append(dist)
-                                attr_list.append(test_feature.attribute(self.inMPAfield))
+                                attr_list.append(test_feature.attribute(self.in_mpa_field))
 
                         # add values to dictionary
                         mindist = min(dist_list)
@@ -336,7 +336,7 @@ class MPAPostHocAccounting:
                         row += 1
                 
                 # loop through polygon layers
-                for polyName in self.checkPolyDict.keys():
+                for polyName in self.check_poly_dict.keys():
                     # add a new worksheet to workbook
                     ws = wb.add_sheet(polyName)
                     row = 1
@@ -344,10 +344,10 @@ class MPAPostHocAccounting:
                     green_style = 'pattern: pattern solid, pattern_fore_colour lime, pattern_back_colour lime'
                     red_style = 'pattern: pattern solid, pattern_fore_colour rose, pattern_back_colour rose'
                     # get information from the dictionary
-                    layer = self.checkPolyDict[polyName]['layer']
-                    field = self.checkPolyDict[polyName]['field']
-                    coverage_target = self.checkPolyDict[polyName]['coverageTarget']
-                    repl_target = self.checkPolyDict[polyName]['replTarget']
+                    layer = self.check_poly_dict[polyName]['layer']
+                    field = self.check_poly_dict[polyName]['field']
+                    coverage_target = self.check_poly_dict[polyName]['coverageTarget']
+                    repl_target = self.check_poly_dict[polyName]['replTarget']
                     # write header
                     header_cells = [polyName + " " + field.name(),
                                     "Coverage" + " target=" + "{0:.0f}%".format(coverage_target),
@@ -358,7 +358,7 @@ class MPAPostHocAccounting:
                     attr_index = layer.fields().lookupField(field.name())
                     attr_list = layer.uniqueValues(attr_index)
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
-                    mpa_area_per_poly = intersect_area(layer, field.name(), self.inMPAlayer, self.inMPAfield)
+                    mpa_area_per_poly = intersect_area(layer, field.name(), self.in_map_layer, self.in_mpa_field)
                     # print report 
                     for uniqueID in attr_list:
                         sum_area = sum(mpa_area_per_poly[uniqueID].values())
@@ -392,6 +392,7 @@ class MPAPostHocAccounting:
                         row += 1
                     for i in range(len(header_cells)):
                         ws.col(i).width = (len(header_cells[i]) + 4) * 367
-                wb.save(self.outXLS)
-                if os.path.exists(self.outXLS):
-                    os.system(self.outXLS)
+                wb.save(self.out_xls)
+                if os.path.exists(self.out_xls):
+                    os.startfile(self.out_xls)
+            self.dlg_targets.outButton.clicked.disconnect(out_file)
