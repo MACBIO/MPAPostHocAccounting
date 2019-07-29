@@ -22,7 +22,12 @@
 """
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QTreeWidgetItem, QTableWidgetItem, QFileDialog, QTreeWidgetItemIterator, QHeaderView
+from PyQt5.QtWidgets import QAction, \
+    QTreeWidgetItem, \
+    QTableWidgetItem, \
+    QFileDialog, \
+    QTreeWidgetItemIterator, \
+    QHeaderView
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
@@ -60,6 +65,8 @@ class MPAPostHocAccounting:
         self.in_mpa_field = None
         self.in_map_layer = None
         self.check_poly_dict = None
+        self.dlg_base = None
+        self.dlg_targets = None
 
     def add_action(
          self,
@@ -162,16 +169,16 @@ class MPAPostHocAccounting:
             # add layer names and field names to analysis selection window
             layer_fields_tree = self.dlg_base.inData
             layer_fields_tree.clear()
-            for layer in self.iface.mapCanvas().layers():
-                if layer.name() == self.in_map_layer.name():
+            for map_layer in self.iface.mapCanvas().layers():
+                if map_layer.name() == self.in_map_layer.name():
                     pass
                 else:
                     tree_item = QTreeWidgetItem()
                     layer_fields_tree.addTopLevelItem(tree_item)
-                    tree_item.setText(0, layer.name())
-                    for field in layer.fields():
+                    tree_item.setText(0, map_layer.name())
+                    for layer_field in map_layer.fields():
                         field_item = QTreeWidgetItem(tree_item)
-                        field_item.setText(0, field.name())
+                        field_item.setText(0, layer_field.name())
             self.dlg_base.inData.expandAll()
 
         self.dlg_base.fieldComboBox.fieldChanged.connect(set_layers)
@@ -182,16 +189,16 @@ class MPAPostHocAccounting:
         def tree_selection_changed():
             self.check_poly_dict = {}
             get_selected = self.dlg_base.inData.selectedItems()
-            for i in get_selected:
-                if i.parent():
-                    field_name = i.text(0)
-                    layer_name = i.parent().text(0)
+            for selected_item in get_selected:
+                if selected_item.parent():
+                    field_name = selected_item.text(0)
+                    selected_layer_name = selected_item.parent().text(0)
                     for j in range(self.iface.mapCanvas().layerCount()):
-                        layer = self.iface.mapCanvas().layer(j)
-                        if layer.name() == layer_name:
-                            for field in layer.fields():
-                                if field.name() == field_name:
-                                    self.check_poly_dict[layer_name] = {'layer': layer, 'field': field}
+                        selected_layer = self.iface.mapCanvas().layer(j)
+                        if selected_layer.name() == selected_layer_name:
+                            for layer_field in selected_layer.fields():
+                                if layer_field.name() == field_name:
+                                    self.check_poly_dict[selected_layer_name] = {'layer': selected_layer, 'field': layer_field}
         self.dlg_base.inData.itemSelectionChanged.connect(tree_selection_changed)
         
         # function returns dict of dicts with area of intersection for two shapefiles
@@ -251,7 +258,10 @@ class MPAPostHocAccounting:
             
             # display file dialog to select output spreadsheet
             def out_file():
-                out_name, _ = QFileDialog.getSaveFileName(None, "Output Spreadsheet", os.getenv('HOME'), "Spreadsheets (*.xls)")
+                out_name, _ = QFileDialog.getSaveFileName(None,
+                                                          "Output Spreadsheet",
+                                                          os.getenv('HOME'),
+                                                          "Spreadsheets (*.xls)")
                 out_path = QFileInfo(out_name).absoluteFilePath()
                 if not out_path.upper().endswith(".XLS"):
                     out_path = out_path + ".xls"
@@ -370,7 +380,7 @@ class MPAPostHocAccounting:
                             if attribute == uniqueID:
                                 try:
                                     attribute = int(uniqueID)
-                                except:
+                                except ValueError:
                                     pass
                                 ws.write(row, 0, attribute)
                             elif attribute == sum_area:
