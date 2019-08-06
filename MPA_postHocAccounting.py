@@ -367,6 +367,7 @@ class MPAPostHocAccounting:
                     # create list of unique IDs for polygons
                     attr_index = layer.fields().lookupField(field.name())
                     attr_list = layer.uniqueValues(attr_index)
+                    attr_list = list(attr_list)
                     attr_list.sort()
                     # create dictionary with entry for each polygon with values of area intersecting with each MPA
                     mpa_area_per_poly = intersect_area(layer, field.name(), self.in_map_layer, self.in_mpa_field)
