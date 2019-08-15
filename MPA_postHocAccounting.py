@@ -253,7 +253,11 @@ class MPAPostHocAccounting:
             header.setSectionResizeMode(0, QHeaderView.Stretch)
             header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
             header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-            
+
+            # clear the output dialog box before showing the
+            self.dlg_targets.outTable.clear()
+
+            # show the targets dialog box
             self.dlg_targets.show()
             
             # display file dialog to select output spreadsheet
@@ -269,7 +273,7 @@ class MPAPostHocAccounting:
                     self.out_xls = out_path
                     self.dlg_targets.outTable.setText(out_path)
            
-            # select output spreadsheet file
+            # select output spreadsheet file when browse button is clicked
             self.dlg_targets.outButton.clicked.connect(out_file)
 
             # this part is executed after the ok button is pressed on the targets window
@@ -406,5 +410,11 @@ class MPAPostHocAccounting:
                         ws.col(i).width = (len(header_cells[i]) + 4) * 367
                 wb.save(self.out_xls)
                 if os.path.exists(self.out_xls):
-                    os.startfile(self.out_xls)
+                    try:
+                        from os import startfile  # windows only
+                        os.startfile(self.out_xls)
+                    except ImportError:
+                        import subprocess
+                        subprocess.run(['xdg-open', self.out_xls])  # if not windows
+
             self.dlg_targets.outButton.clicked.disconnect(out_file)
