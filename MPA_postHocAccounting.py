@@ -131,6 +131,8 @@ class MPAPostHocAccounting:
         
         # clear old variables
         self.dlg_base.fieldComboBox.setLayer(None)
+        self.dlg_base.inMPA_Layer.clear()
+        self.dlg_base.fieldComboBox.clear()
         iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
         while iterator.value():
             iterator.value().takeChildren()
@@ -350,9 +352,14 @@ class MPAPostHocAccounting:
                         row += 1
                 
                 # loop through polygon layers
+                name_list = []
                 for polyName in self.check_poly_dict.keys():
-                    # add a new worksheet to workbook
-                    ws = wb.add_sheet(polyName)
+                    # add a new worksheet to workbook, length limit is 31 characters
+                    short_name = polyName[:30]
+                    if short_name in name_list:
+                        short_name = short_name[:29] + "1"
+                    name_list.append(short_name)
+                    ws = wb.add_sheet(short_name)
                     row = 1
                     # define green and red styles
                     green_style = 'pattern: pattern solid, pattern_fore_colour lime, pattern_back_colour lime'
