@@ -22,7 +22,7 @@ repository=https://github.com/MACBIO/MPAPostHocAccounting
 changelog="clean up code, sort output features, fix worksheet name length"
 
 # Tags are comma separated with spaces allowed
-tags=python, mpa, allocation
+tags=mpa, allocation
 
 homepage=https://github.com/MACBIO/MPAPostHocAccounting
 category=Plugins
