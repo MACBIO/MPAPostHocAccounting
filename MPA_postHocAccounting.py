@@ -56,9 +56,9 @@ class MPAPostHocAccounting:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = u'MPA Post-Hoc Accounting'
-        self.toolbar = self.iface.addToolBar(u'MPAPostHocAccounting')
-        self.toolbar.setObjectName(u'MPAPostHocAccounting')
+        self.menu = u'MPA Results Analysis'
+        self.toolbar = self.iface.addToolBar(u'MPA Results Analysis')
+        self.toolbar.setObjectName(u'MPA Results Analysis')
 
         # initialise and clear variables
         self.out_xls = None
@@ -112,7 +112,7 @@ class MPAPostHocAccounting:
         icon_path = ':/plugins/MPAPostHocAccounting/icon.png'
         self.add_action(
             icon_path,
-            text=u'MPA Post-Hoc Accounting',
+            text=u'MPA Results Analysis',
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -120,7 +120,7 @@ class MPAPostHocAccounting:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                u'&MPA Post-Hoc Accounting',
+                u'&MPA Results Analysis',
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar

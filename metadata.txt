@@ -3,14 +3,14 @@
 # Mandatory items:
 
 [general]
-name=MPA Post-Hoc Accounting
+name=MPA Results Analysis
 qgisMinimumVersion=3.0
-description= This plugin checks how your MPAs meet your placement objectives
-version=0.22
+description= This plugin checks how your candidate MPA network meets your placement objectives
+version=0.23
 author=Jonah Sullivan
 email=jonahsullivan79@gmail.com
 
-about=This plugin is used to check how a MPA network meets Marine Spatial Planning MPA Placement Objectives. For example, the MPA network should cover 10% of each bioregion and each bioregion should be replicated (intersected) by 3 MPAs.
+about=This plugin is used to check how a candidate MPA network meets Marine Spatial Planning MPA Placement Objectives. For example, the MPA network should cover 10% of each bioregion and each bioregion should be replicated (intersected) by 3 MPAs.
 
 tracker=https://github.com/MACBIO/MPAPostHocAccounting/issues
 repository=https://github.com/MACBIO/MPAPostHocAccounting
