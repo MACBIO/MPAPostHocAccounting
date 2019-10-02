@@ -223,10 +223,7 @@ class MPAPostHocAccounting:
                         else:
                             feat_dict[attr2] = (int_area / geom1.area())
                 # write to output dict
-                if attr1 in area_dict.keys():
-                    area_dict[attr1] += feat_dict
-                else:
-                    area_dict[attr1] = feat_dict
+                area_dict[attr1] = feat_dict
             return area_dict
                 
         # this part is executed after the ok button is pressed on the base window
