@@ -56,9 +56,9 @@ class MPAPostHocAccounting:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = u'MPA Results Analysis'
-        self.toolbar = self.iface.addToolBar(u'MPA Results Analysis')
-        self.toolbar.setObjectName(u'MPA Results Analysis')
+        self.menu = u'MPA Post-Hoc Accounting'
+        self.toolbar = self.iface.addToolBar(u'MPAPostHocAccounting')
+        self.toolbar.setObjectName(u'MPAPostHocAccounting')
 
         # initialise and clear variables
         self.out_xls = None
@@ -112,7 +112,7 @@ class MPAPostHocAccounting:
         icon_path = ':/plugins/MPAPostHocAccounting/icon.png'
         self.add_action(
             icon_path,
-            text=u'MPA Results Analysis',
+            text=u'MPA Post-Hoc Accounting',
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -120,7 +120,7 @@ class MPAPostHocAccounting:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                u'&MPA Results Analysis',
+                u'&MPA Post-Hoc Accounting',
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
@@ -131,9 +131,9 @@ class MPAPostHocAccounting:
         
         # clear old variables
         self.dlg_base.fieldComboBox.setLayer(None)
-        self.dlg_base.inMPA_Layer.clear()
-        self.dlg_base.fieldComboBox.clear()
-        iterator = QTreeWidgetItemIterator(self.dlg_base.inData)
+        # self.dlg_base.inMPA_Layer.clear()
+        # self.dlg_base.fieldComboBox.clear()
+        iterator = QTreeWidgetItemIterator(self.dlg_base.inData, QTreeWidgetItemIterator.All)
         while iterator.value():
             iterator.value().takeChildren()
             iterator += 1
@@ -190,31 +190,32 @@ class MPAPostHocAccounting:
 
         def tree_selection_changed():
             self.check_poly_dict = {}
-            for selected_item in self.dlg_base.inData.selectedItems():
+            get_selected = self.dlg_base.inData.selectedItems()
+            for selected_item in get_selected:
                 if selected_item.parent():
                     field_name = selected_item.text(0)
-                    parent_name = selected_item.parent().text(0)
+                    selected_layer_name = selected_item.parent().text(0)
                     for j in range(self.iface.mapCanvas().layerCount()):
                         selected_layer = self.iface.mapCanvas().layer(j)
-                        if selected_layer.name() == parent_name:
+                        if selected_layer.name() == selected_layer_name:
                             for layer_field in selected_layer.fields():
                                 if layer_field.name() == field_name:
-                                    self.check_poly_dict[parent_name] = {'layer': selected_layer, 'field': layer_field}
+                                    self.check_poly_dict[selected_layer_name] = {'layer': selected_layer, 'field': layer_field}
         self.dlg_base.inData.itemSelectionChanged.connect(tree_selection_changed)
         
-        # function returns dict of dicts with area of intersection for two layers
+        # function returns dict of dicts with area of intersection for two shapefiles
         def intersect_area(layer1, field1, layer2, field2):
             area_dict = {}
-            # loop through features in first layer
+            # loop through features in first shapefile
             for feat1 in layer1.getFeatures():
                 feat_dict = {}
                 geom1 = feat1.geometry()
                 attr1 = feat1[layer1.fields().lookupField(field1)]
-                # loop through features in second layer
+                # loop through features in second shapefile
                 for feat2 in layer2.getFeatures():
                     geom2 = feat2.geometry()
                     attr2 = feat2[layer2.fields().lookupField(field2)]
-                    # if features intersect then write feature attr and area to dict
+                    # if features intersect then write feature attr and area to shape2 dict
                     if geom2.intersects(geom1):
                         intersection = geom1.intersection(geom2)
                         int_area = intersection.area()
@@ -222,7 +223,7 @@ class MPAPostHocAccounting:
                             feat_dict[attr2] += (int_area / geom1.area())
                         else:
                             feat_dict[attr2] = (int_area / geom1.area())
-                # write to output dict
+                    # write shape2 dict to output dict
                 area_dict[attr1] = feat_dict
             return area_dict
                 
@@ -284,7 +285,7 @@ class MPAPostHocAccounting:
                 for row in range(table_widget.rowCount()):
                     layer_name = ''
                     coverage_target = 0
-                    replication_target = 0
+                    repl_target = 0
                     for column in range(table_widget.columnCount()):
                         table_item = table_widget.item(row, column)
                         if column == 0:
@@ -292,15 +293,15 @@ class MPAPostHocAccounting:
                         elif column == 1:
                             coverage_target = table_item.text()
                         elif column == 2:
-                            replication_target = table_item.text()
+                            repl_target = table_item.text()
                     self.check_poly_dict[layer_name]['coverageTarget'] = int(coverage_target)
-                    self.check_poly_dict[layer_name]['replicationTarget'] = int(replication_target)
+                    self.check_poly_dict[layer_name]['replTarget'] = int(repl_target)
             
                 # create a workbook
                 wb = xlwt.Workbook()
 
                 # analyse mpa size and distance to nearest MPA
-                # create dict of distances to other features
+                # create dict of distances to other mpas
                 if self.in_map_layer.featureCount() > 1:
                     dist_dict = {}
                     for feat in self.in_map_layer.getFeatures():
@@ -331,9 +332,9 @@ class MPAPostHocAccounting:
                                 attr_list.append(test_feature.attribute(self.in_mpa_field))
 
                         # add values to dictionary
-                        min_distance = min(dist_list)
-                        min_attribute = attr_list[dist_list.index(min_distance)]
-                        dist_dict[attr] = [min_attribute, min_distance]
+                        mindist = min(dist_list)
+                        minattr = attr_list[dist_list.index(mindist)]
+                        dist_dict[attr] = [minattr, mindist]
 
                     # write closest mpa to workbook
                     ws = wb.add_sheet("Distances")
@@ -367,11 +368,11 @@ class MPAPostHocAccounting:
                     layer = self.check_poly_dict[polyName]['layer']
                     field = self.check_poly_dict[polyName]['field']
                     coverage_target = self.check_poly_dict[polyName]['coverageTarget']
-                    replication_target = self.check_poly_dict[polyName]['replicationTarget']
+                    repl_target = self.check_poly_dict[polyName]['replTarget']
                     # write header
                     header_cells = [polyName + " " + field.name(),
                                     "Coverage" + " target=" + "{0:.0f}%".format(coverage_target),
-                                    "Replication" + ' target=' + str(replication_target)]
+                                    "Replication" + ' target=' + str(repl_target)]
                     for i in range(len(header_cells)):
                         ws.write(0, i, header_cells[i])
                     # create list of unique IDs for polygons
@@ -405,7 +406,7 @@ class MPAPostHocAccounting:
                                 ws.write(row, 1, attribute, style)
                             elif attribute == mpa_count:
                                 attribute = int(attribute)
-                                if attribute >= replication_target:
+                                if attribute >= repl_target:
                                     style_string = green_style
                                 else:
                                     style_string = red_style
