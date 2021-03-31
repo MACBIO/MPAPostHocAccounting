@@ -6,7 +6,7 @@
 name=MPA Results Analysis
 qgisMinimumVersion=3.0
 description= This plugin checks how your candidate MPA network meets your placement objectives
-version=0.23
+version=0.24
 author=Jonah Sullivan
 email=jonahsullivan79@gmail.com
 
@@ -19,7 +19,7 @@ repository=https://github.com/MACBIO/MPAPostHocAccounting
 # Recommended items:
 
 # Uncomment the following line and add your changelog:
-changelog="clean up code, sort output features, fix worksheet name length"
+changelog="fix QgsMapLayerComboBox contents"
 
 # Tags are comma separated with spaces allowed
 tags=mpa, allocation
@@ -28,7 +28,7 @@ homepage=https://github.com/MACBIO/MPAPostHocAccounting
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
