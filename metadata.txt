@@ -10,7 +10,7 @@ version=0.24
 author=Jonah Sullivan
 email=jonahsullivan79@gmail.com
 
-about=This plugin is used to check how a candidate MPA network meets Marine Spatial Planning MPA Placement Objectives. For example, the MPA network should cover 10% of each bioregion and each bioregion should be replicated (intersected) by 3 MPAs.
+about=This plugin is used to check how a candidate MPA network meets Marine Spatial Planning MPA Placement Objectives. For example, the MPA network should cover 10 percent of each bioregion and each bioregion should be replicated (intersected) by 3 MPAs.
 
 tracker=https://github.com/MACBIO/MPAPostHocAccounting/issues
 repository=https://github.com/MACBIO/MPAPostHocAccounting
