@@ -34,8 +34,20 @@ from .resources import *
 from .MPA_postHocAccounting_dialog_base import MPAPostHocAccountingDialogBase
 from .MPA_postHocAccounting_dialog_targets import MPAPostHocAccountingDialogTargets
 import os
-import xlwt
 from qgis.core import QgsDistanceArea, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext
+
+try:
+    # use system version of xlwt
+    import xlwt
+except ImportError:
+    # use version of xlwt distributed with plugin
+    import site
+    import os
+
+    # this will get the path for this file and add it to the system PATH
+    # so the xlwt folder can be found
+    site.addsitedir(os.path.abspath(os.path.dirname(__file__)))
+    import xlwt
 
 
 class MPAPostHocAccounting:
