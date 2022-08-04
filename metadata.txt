@@ -6,7 +6,7 @@
 name=MPA Results Analysis
 qgisMinimumVersion=3.0
 description= This plugin checks how your candidate MPA network meets your placement objectives
-version=0.25
+version=0.26
 author=Jonah Sullivan
 email=jonahsullivan79@gmail.com
 
